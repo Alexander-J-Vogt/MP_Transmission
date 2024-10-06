@@ -30,15 +30,22 @@ df_callreport <- read_dta(paste0(A,"wang_22_data/", "callreport_ffiec_merged.dta
 ## Importing Summary of Deposits (by FDIC) from Wang et al. (2022) -------------
 df_sod <- read_dta(paste0(A,"wang_22_data/", "FDIC_SOD.dta"))
 
-### Importing Summary of Deposits (by FDIC) for the years 2018 to 2024
+### Importing Summary of Deposits (by FDIC) for the years 2018 to 2024 ---------
+## Import Files ----
 files_sod <- list.files(paste0(A, "sod_direct/"))
 files_sod <- files_sod[grepl("\\csv$",files_sod)]
 
-# for (i in files_sod) {
-  file <- read_csv(paste0(A, "sod_direct/", files_sod[1]))
-  year <- str_sub(files_sod[1], start = 5, end = 8)
-  save(file, paste0(TEMP,"/", "sod_", year, ".rda"))
-# }
+for (i in files_sod) {
+  print(paste0("Iteration Status: ", i))
+  file <- suppressMessages(read_csv(paste0(A, "sod_direct/", i)))
+  year <- str_sub(i, start = 5, end = 8)
+  SAVE(dfx = file, namex = paste0("sod_", year))
+  rm(file, year)
+}
+
+sod_2020 <- LOAD(dfinput = "sod_2020")
+### Align variable names with those of the Wang et al. (2022) ------------------
+
 
 
 
