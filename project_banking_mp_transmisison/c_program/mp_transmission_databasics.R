@@ -26,7 +26,7 @@ gc()
 # Call Rreport: Information on bank-level data
 df_callreport <- read_dta(paste0(A,"wang_22_data/", "callreport_ffiec_merged.dta"))
 
-### Importing SUmmary of Deposits (by FDIC) ------------------------------------
+### Importing Summary of Deposits (SOD) (by FDIC) ------------------------------------
 ## Importing Summary of Deposits (by FDIC) from Wang et al. (2022) -------------
 df_sod <- read_dta(paste0(A,"wang_22_data/", "FDIC_SOD.dta"))
 
@@ -35,15 +35,59 @@ df_sod <- read_dta(paste0(A,"wang_22_data/", "FDIC_SOD.dta"))
 files_sod <- list.files(paste0(A, "sod_direct/"))
 files_sod <- files_sod[grepl("\\csv$",files_sod)]
 
+# Loop for importing all sod datasets from 2018 - 
 for (i in files_sod) {
   print(paste0("Iteration Status: ", i))
-  file <- suppressMessages(read_csv(paste0(A, "sod_direct/", i)))
+  file <- suppressMessages(read_csv(paste0(A, "sod_direct/", i), , col_types = cols(.default = "c")))
   year <- str_sub(i, start = 5, end = 8)
   SAVE(dfx = file, namex = paste0("sod_", year))
   rm(file, year)
 }
 
-sod_2020 <- LOAD(dfinput = "sod_2020")
+# Loop over all SOD datasets in order to create one large data frame for 
+# the years 2018 to 2014
+
+# Create vector with all names of SOD datasets
+sod_temp <- list.files(paste0(TEMP))
+sod_temp <- sod_temp[str_detect(sod_temp, "sod")]
+
+# Create empty list in which all SOD datasets will be saved
+combined_sod <- list()
+
+# Save all data frames within alist
+for (file in sod_temp) {
+  # Read the .rda file
+  load(paste0(TEMP, "/", file))
+  
+  # Extract df name of file
+  df_name <- str_sub(file, end = -5)
+  
+  # Retrieve the df by string
+  loaded_data <- get(df_name)
+  
+  # Combine Data
+  combined_sod <- append(combined_sod, list(loaded_data))
+  
+  # Avoid littering the global environment
+  rm(loaded_data)
+}
+
+# Combine all data frames within the list to one large data frmae
+combined_sod <-  bind_rows(combined_sod)
+
+# Remove all single datasets in order to avoid littering the global enivronment
+rm(list = str_sub(sod_temp, end = -5))
+
+# Rename and label the variables
+names_capslock <- names(combined_sod)
+names_low <- str_to_lower(names_capslock)
+colnames(combined_sod) <- names_low
+for (i in seq_along(combined_sod)) {
+  attr(combined_sod[[i]], "label") <- names_capslock[i]
+}
+
+
+
 ### Align variable names with those of the Wang et al. (2022) ------------------
 
 
