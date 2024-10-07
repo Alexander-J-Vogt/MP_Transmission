@@ -24,7 +24,7 @@ gc()
 
 ### Importing Call Report Data from Wang et al. (2022) -------------------------
 # Call Rreport: Information on bank-level data
-df_callreport <- read_dta(paste0(A,"wang_22_data/", "callreport_ffiec_merged.dta"))
+# df_callreport <- read_dta(paste0(A,"wang_22_data/", "callreport_ffiec_merged.dta"))
 
 ### Importing Summary of Deposits (SOD) (by FDIC) ------------------------------------
 ## Importing Summary of Deposits (by FDIC) from Wang et al. (2022) -------------
@@ -72,22 +72,42 @@ for (file in sod_temp) {
   rm(loaded_data)
 }
 
-# Combine all data frames within the list to one large data frmae
-combined_sod <-  bind_rows(combined_sod)
 
+DEBUBG <-  F
+if (DEBUG) {
+  is_uppercase <- function(x) {
+    grepl("^[A-Z0-9_]+$", x)
+  }
+  
+    for (i in 1:31) {
+    
+    result <- sapply(names(combined_sod[[i]]), is_uppercase)
+    all_valid <- all(result)
+    if (all_valid) {
+      print(paste0("All values of ", paste0("sod_", i + 1993 ) ," are valid (only uppercase letters, numbers, or underscores)."))
+    } else {
+      print("There is at least one invalid value in:", paste0("sod_", i + 1993))
+    }
+  }
+}
 # Remove all single datasets in order to avoid littering the global enivronment
 rm(list = str_sub(sod_temp, end = -5))
 
 # Rename and label the variables
-names_capslock <- names(combined_sod)
+names_capslock <- names(combined_sod[[1]])
 names_low <- str_to_lower(names_capslock)
-colnames(combined_sod) <- names_low
+# number_data_frames <- sum(sapply(combined_sod, function(x) is.data.frame(x)))
+combined_sod <-  LOWERCASEVAR(combined_sod, names_low)
+
+# combined_sod <- lapply(1:number_data_frames, function (x) colnames(combined_sod[x]) <- names_low)
+
+
+# Combine all data frames within the list to one large data frame
+combined_sod <-  bind_rows(combined_sod)
+
 for (i in seq_along(combined_sod)) {
   attr(combined_sod[[i]], "label") <- names_capslock[i]
 }
-
-
-
 ### Align variable names with those of the Wang et al. (2022) ------------------
 
 
