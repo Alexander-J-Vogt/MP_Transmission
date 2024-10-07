@@ -49,7 +49,7 @@ for (i in files_sod) {
 
 # Create vector with all names of SOD datasets
 sod_temp <- list.files(paste0(TEMP))
-sod_temp <- sod_temp[str_detect(sod_temp, "sod")]
+sod_temp <- sod_temp[str_detect(sod_temp, "^sod")]
 
 # Create empty list in which all SOD datasets will be saved
 combined_sod <- list()
@@ -93,21 +93,21 @@ if (DEBUG) {
 # Remove all single datasets in order to avoid littering the global enivronment
 rm(list = str_sub(sod_temp, end = -5))
 
-# Rename and label the variables
+# Rename the variables to lower case variables
 names_capslock <- names(combined_sod[[1]])
 names_low <- str_to_lower(names_capslock)
-# number_data_frames <- sum(sapply(combined_sod, function(x) is.data.frame(x)))
 combined_sod <-  LOWERCASEVAR(combined_sod, names_low)
-
-# combined_sod <- lapply(1:number_data_frames, function (x) colnames(combined_sod[x]) <- names_low)
-
 
 # Combine all data frames within the list to one large data frame
 combined_sod <-  bind_rows(combined_sod)
 
+# Label all variables with their original variables in upper case
 for (i in seq_along(combined_sod)) {
   attr(combined_sod[[i]], "label") <- names_capslock[i]
 }
+
+# Save Combined (raw) SOD dataset
+SAVE(dfx = combined_sod, namex = "combined_sod")
 ### Align variable names with those of the Wang et al. (2022) ------------------
 
 
