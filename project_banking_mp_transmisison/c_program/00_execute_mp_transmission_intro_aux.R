@@ -7,7 +7,7 @@
 ADO <-  paste0(HOME,"/project_00generalproject/00_r_userwritten/") #here: path to subfolder with all userwritten routines like function scripts, etc.
 #
 A <- paste0(HOME,"/project_banking_mp_transmisison/a_microdata/") #here: path to folder with data
-TEMP <- paste0(A,"/","temp",sep="") # path to subfolder with intermediate output, optionally reset/ deleted/created anew
+TEMP <- paste0(A, "/", "temp",sep="") # path to subfolder with intermediate output, optionally reset/ deleted/created anew
 #
 D <- paste0(HOME,"/project_banking_mp_transmisison/d_results/") #here: path to folder with output (tables, figures, logs)
 GEO <- D
