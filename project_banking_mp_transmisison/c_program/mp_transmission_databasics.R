@@ -96,33 +96,72 @@ rm(list = "combined_sod")
 
 # Clear unused memory
 gc()
+
 ### 2. Import: Mortgages Data  -------------------------------------------------
     
-df_mortgage <- read.csv(paste0(A, "mortgage_data/", "nmdb-new-mortgage-statistics-state-annual.csv"))
-df_mortgage_performance <- read.csv(paste0(A, "mortgage_data/", "nmdb-mortgage-performance-statistics-states-quarterly.csv"))
-df_mortgage_statistics <- read.csv(paste0(A, "mortgage_data/", "nmdb-new-mortgage-statistics-national-census-areas-annual.csv"))
+df_new_mortgage <- read.csv(paste0(A, "mortgage_data/", "nmdb-new-mortgage-statistics-state-annual.csv"))
+# df_mortgage_performance <- read.csv(paste0(A, "mortgage_data/", "nmdb-mortgage-performance-statistics-states-quarterly.csv"))
+# df_new_mortgage <- read.csv(paste0(A, "mortgage_data/", "nmdb-new-mortgage-statistics-national-census-areas-annual.csv"))
 
+# Start to 
+column_vector <- colnames(df_new_mortgage)
+column_vector <- str_to_lower(column_vector)
+colnames(df_new_mortgage) <- column_vector
 
-### 3. Import: Population Data ----------------------------------------------
+# Clean name variables
+df_new_mortgage <- LOWERUNDERSCORE(data = df_new_mortgage, varname = "geoname")
 
+LOWERUNDERSCORE <-  function(data, varname) {
+  data[[varname]] <- gsub(" ", "_", data[[varname]])
+  data[[varname]] <- str_to_lower(data[[varname]])
+  return(data)
+}
+df_new_mortgage <- LOWERUNDERSCORE(data = df_new_mortgage, varname = "market")
+df_new_mortgage <- gsub("[()]", "", df_new_mortgage)
+df_new_mortgage <- df_new_mortgage |>
+  rename(nr_orginations = value1,
+         value_originations = value2)
+
+### 3. Import: U.S.Population Data ---------------------------------------------
+
+# Import U.S.Population for the years 2010 to 2020
 df_pop_us_1 <- read_csv(paste0(A, "population_us/", "nst-est2020-popchg2010-2020.csv"))
-# df_pop_00_10 <- read_csv(paste0(A, "population_us/", "st-est00int-alldata.csv"))
+
+# Import U.S.Population for the years 2000 to 2010
 df_pop_us_2 <- read_excel(paste0(A, "population_us/", "nst-est2010-01.xls"), 
                           sheet = "NST01", 
                           range = "A4:L60")
 
+## 3.1 Manipulate Data for the years 2010 t0 2020 ------------------------------
+
+# Select relevant variables
 select_columns <- grep("POPESTIMATE", names(df_pop_us_1), value = TRUE)
 select_columns <- c("STATE", "NAME", select_columns)
 df_pop_us_1 <- df_pop_us_1[, select_columns]
+
+# Clean name variables
 df_pop_us_1$NAME <- gsub(" ", "_", df_pop_us_1$NAME)
 df_pop_us_1$NAME <- str_to_lower(df_pop_us_1$NAME)
+
+# Variable names to only lower case letters
 names_low <- str_to_lower(names(df_pop_us_1))
 colnames(df_pop_us_1) <- names_low
+
+
+
+# Adjust census regions by substituting "_region" with ""
 df_pop_us_1$name <- gsub("_region", "", df_pop_us_1$name)
+
+# Exclude u.s. territory "Puerto Rico" 
 df_pop_us_1 <-  df_pop_us_1 |> filter(name != "puerto_rico") 
-                       
+
+## 3.2 Manipulate Data for the years 2010 to 2020 ------------------------------
+
+# Create a vector with variable names as imported excel does not include any
+# column names. -> Needs to be coded by hand
 column_names <- c()
 
+# Create popestimate_year variable names
 for (i in 1:11) {
   # Create the variable name by concatenating "POPESTIMATE" with the year
   variablename <- paste0("popestimate", 2011 - i )
@@ -131,16 +170,21 @@ for (i in 1:11) {
   column_names <- c(column_names, variablename)
 }
 
+# Rename variables with the newly created variable names vector
 column_names <- c("name", column_names)
 colnames(df_pop_us_2) <- column_names 
+
+# Clean the state variable
 df_pop_us_2$name <- gsub(" ", "_", df_pop_us_2$name)
 df_pop_us_2$name <- gsub("^\\.", "", df_pop_us_2$name)
 df_pop_us_2$name <- str_to_lower(df_pop_us_2$name)
+
+# Exclude the estimate as it is already available in the other dataset
 df_pop_us_2$popestimate2010 <- NULL
 
-
-# Combine both datasets in order to create a U.S. population dataset for the 
+## 3.3 Merge both datasets in order to create a U.S. population dataset for the 
 # period 2000 to 2020
+# !!! Check if states is chr or dbl
 df_pop_us_complete <- merge(df_pop_us_1, df_pop_us_2, by = "name")
 df_pop_us_complete <- df_pop_us_complete |>
   pivot_longer(cols = starts_with("popestimate"),
@@ -149,6 +193,11 @@ df_pop_us_complete <- df_pop_us_complete |>
   mutate(year = str_remove(year, "popestimate")) |>
   mutate(year = as.double(year)) 
 
+# Save the merged dataset as pop_us
+SAVE(dfx = df_pop_us_complete, namex = "pop_us")
+
+# remove all created objects
+rm(list = ls(pattern = "df_pop_us"))
 
 
 
