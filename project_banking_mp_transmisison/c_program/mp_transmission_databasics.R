@@ -30,8 +30,8 @@ gc()
 ## Importing Summary of Deposits (by FDIC) from Wang et al. (2022) -------------
 df_sod <- read_dta(paste0(A,"wang_22_data/", "FDIC_SOD.dta"))
 
-### Importing Summary of Deposits (by FDIC) for the years 2018 to 2024 ---------
-## Import Files ----
+### 1. Importing Summary of Deposits (by FDIC) for the years 2018 to 2024 ---------
+## 1.1 Import Files ----
 files_sod <- list.files(paste0(A, "sod_direct/"))
 files_sod <- files_sod[grepl("\\csv$",files_sod)]
 
@@ -72,24 +72,6 @@ for (file in sod_temp) {
   rm(loaded_data)
 }
 
-
-DEBUBG <-  F
-if (DEBUG) {
-  is_uppercase <- function(x) {
-    grepl("^[A-Z0-9_]+$", x)
-  }
-  
-    for (i in 1:31) {
-    
-    result <- sapply(names(combined_sod[[i]]), is_uppercase)
-    all_valid <- all(result)
-    if (all_valid) {
-      print(paste0("All values of ", paste0("sod_", i + 1993 ) ," are valid (only uppercase letters, numbers, or underscores)."))
-    } else {
-      print("There is at least one invalid value in:", paste0("sod_", i + 1993))
-    }
-  }
-}
 # Remove all single datasets in order to avoid littering the global enivronment
 rm(list = str_sub(sod_temp, end = -5))
 
@@ -108,20 +90,34 @@ for (i in seq_along(combined_sod)) {
 
 # Save Combined (raw) SOD dataset
 SAVE(dfx = combined_sod, namex = "combined_sod")
-### Align variable names with those of the Wang et al. (2022) ------------------
 
+# Clear Global Environment
+rm(list = "combined_sod")
 
-
-
-df_sod_2024 <- read.csv(paste0(A, "ALL_2024.csv"))
-df_sod_2024 <- 
-
-colnames(df_sod_2024) <- colnames(df_sod)
-
+# Clear unused memory
+gc()
+### 2. Import: Mortgages Data  -------------------------------------------------
+    
 df_mortgage <- read.csv(paste0(A, "mortgage_data/", "nmdb-new-mortgage-statistics-state-annual.csv"))
 df_mortgage_performance <- read.csv(paste0(A, "mortgage_data/", "nmdb-mortgage-performance-statistics-states-quarterly.csv"))
 df_mortgage_statistics <- read.csv(paste0(A, "mortgage_data/", "nmdb-new-mortgage-statistics-national-census-areas-annual.csv"))
 
+
+### 3. Import: Population Data ----------------------------------------------
+
+df_pop_us_1 <- read_csv(paste0(A, "population_us/", "nst-est2020-popchg2010-2020.csv"))
+# df_pop_00_10 <- read_csv(paste0(A, "population_us/", "st-est00int-alldata.csv"))
+df_pop_us_2 <- read_excel(paste0(A, "population_us/", "nst-est2010-01.xls"), sheet = "NST01", range = "A4:L60")
+
+select_columns <- grep("POPESTIMATE", names(df_pop_us_1), value = TRUE)
+select_columns <- c("STATE", "NAME", select_columns)
+df_pop_us_1 <- df_pop_us_1[, select_columns]
+df_pop_us_1$NAME <- gsub(" ", "_", df_pop_us_1$NAME)
+df_pop_us_1$NAME <- str_to_lower(df_pop_us_1$NAME)
+names_low <- str_to_lower(names(df_pop_us_1))
+colnames(df_pop_us_1) <- names_low
+
+for (i in NAME)
 
 
 Viewdf_callreport <- read.delim(paste0())
