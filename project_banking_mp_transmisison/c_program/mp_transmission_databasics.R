@@ -107,7 +107,9 @@ df_mortgage_statistics <- read.csv(paste0(A, "mortgage_data/", "nmdb-new-mortgag
 
 df_pop_us_1 <- read_csv(paste0(A, "population_us/", "nst-est2020-popchg2010-2020.csv"))
 # df_pop_00_10 <- read_csv(paste0(A, "population_us/", "st-est00int-alldata.csv"))
-df_pop_us_2 <- read_excel(paste0(A, "population_us/", "nst-est2010-01.xls"), sheet = "NST01", range = "A4:L60")
+df_pop_us_2 <- read_excel(paste0(A, "population_us/", "nst-est2010-01.xls"), 
+                          sheet = "NST01", 
+                          range = "A4:L60")
 
 select_columns <- grep("POPESTIMATE", names(df_pop_us_1), value = TRUE)
 select_columns <- c("STATE", "NAME", select_columns)
@@ -116,8 +118,38 @@ df_pop_us_1$NAME <- gsub(" ", "_", df_pop_us_1$NAME)
 df_pop_us_1$NAME <- str_to_lower(df_pop_us_1$NAME)
 names_low <- str_to_lower(names(df_pop_us_1))
 colnames(df_pop_us_1) <- names_low
+df_pop_us_1$name <- gsub("_region", "", df_pop_us_1$name)
+df_pop_us_1 <-  df_pop_us_1 |> filter(name != "puerto_rico") 
+                       
+column_names <- c()
 
-for (i in NAME)
+for (i in 1:11) {
+  # Create the variable name by concatenating "POPESTIMATE" with the year
+  variablename <- paste0("popestimate", 2011 - i )
+  
+  # Append the variable name to the vector
+  column_names <- c(column_names, variablename)
+}
+
+column_names <- c("name", column_names)
+colnames(df_pop_us_2) <- column_names 
+df_pop_us_2$name <- gsub(" ", "_", df_pop_us_2$name)
+df_pop_us_2$name <- gsub("^\\.", "", df_pop_us_2$name)
+df_pop_us_2$name <- str_to_lower(df_pop_us_2$name)
+df_pop_us_2$popestimate2010 <- NULL
+
+
+# Combine both datasets in order to create a U.S. population dataset for the 
+# period 2000 to 2020
+df_pop_us_complete <- merge(df_pop_us_1, df_pop_us_2, by = "name")
+df_pop_us_complete <- df_pop_us_complete |>
+  pivot_longer(cols = starts_with("popestimate"),
+               names_to = "year",
+               values_to = "population_total") |>
+  mutate(year = str_remove(year, "popestimate")) |>
+  mutate(year = as.double(year)) 
+
+
 
 
 Viewdf_callreport <- read.delim(paste0())
