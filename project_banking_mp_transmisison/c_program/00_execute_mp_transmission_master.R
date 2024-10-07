@@ -56,7 +56,7 @@ DO <- paste0(HOME,"/project_banking_mp_transmisison/c_program/") #here: path to 
 
 ######################+
 # launch set-up scripts #####
-input <- '00_execute_m6practice_intro_aux.R'
+input <- '00_execute_mp_transmission_intro_aux.R'
 source(paste0(DO,input,sep=""), echo=TRUE, max=1000)
 #DEBUG <- T
 
