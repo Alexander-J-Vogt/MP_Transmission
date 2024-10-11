@@ -253,6 +253,8 @@ READTXT <- function(file, path) {
   return(data)
 }
 
+census_tract <- read.csv(paste0(A, "c_census/","Tract_Level_PDB_Version2.csv"), skip = 1)
+
 cl <- makeCluster(num_cores)
 
 clusterExport(cl, varlist = c("read_csv_file", "A"))
@@ -278,7 +280,7 @@ dt_txt_main <- dt_txt_main[state_code != "" | county_code != ""]
 # Excluding: Puerto Rico (72), US Virgin Islands (78), American Samoa (60), 
 # Northern Marian Islands (69), U.S. Minor Outlying Islands (74)
 dt_txt_main <- dt_txt_main[!state_code %in% c("72", "66", "60", "69", "74")] # exlude Puerto Rico
-# Exclude al values whereht county_code or the state_code is missin
+# Exclude all values where the fips code is incomplete
 dt_txt_main <- dt_txt_main[nchar(fips) == 5]
 
 dt_txt_main <- dt_txt_main[, .(total_amount_loan = sum(loan_amount), by = fips)]
