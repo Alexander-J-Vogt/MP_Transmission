@@ -255,7 +255,7 @@ hmda_files <- list.files(TEMP, pattern = "hmda")
 COUNTYLEVEL <- function (filesnamex) {
   
   # load raw hmda files
-  load(paste0(TEMP, "/", filesnamex))
+  load(paste0(TEMP, "/",filesnamex))
   
   # retrieve current loaded hmda file and save into standardized name
   files_list <- ls(pattern = "raw")
@@ -265,6 +265,8 @@ COUNTYLEVEL <- function (filesnamex) {
   if (length(files_list) != 1) {
     stop("STOP: Only one dataset at a time!")
   }
+  
+  print(paste0("Current Dataset: ", gsub("[^0-9]", "", files_list)))
   
   # Filter for only commercial banks, who distributed mortgages + for available to 
   # state_code and county_code
@@ -289,8 +291,14 @@ COUNTYLEVEL <- function (filesnamex) {
   # Exclude all values where the fips code is incomplete # only 3134 counties instead of 3142
   main <- main[nchar(fips) == 5]
   
+  # Extract the unique year
+  year <- unique(main$activity_year)
+  
   # Collapse by county and sum up all loan amounts within a county
-  main <- main[, .(total_amount_loan = sum(loan_amount), by = fips)]
+  main <- main[, .(total_amount_loan = sum(loan_amount)), by = fips]
+  
+  # Add year back to data.table
+  main <- main[, activity_year := year]
   
   #SAVE and assign n
   SAVE(dfx = main, namex = paste0("hdma_county_", gsub("[^0-9]", "", files_list)))
@@ -303,18 +311,22 @@ COUNTYLEVEL <- function (filesnamex) {
 
 plan(list(multisession, multisession), workers = availableCores() - 1)
 
-result_hdma <- future_lapply(seq_along(hmda_files), function(i) {
+result_hmda <- future_lapply(seq_along(hmda_files), function(i) {
   # Merge HDMA Panel and LRA files
   data <- COUNTYLEVEL(hmda_files[i]) 
-  assign(paste0("hdma_county_", gsub("[^0-9]", "", hmda_files[i])), data)
-  print(paste0("HDMA is succesfully saved for the year: ", gsub("[^0-9]", "", lra_txt_files[i])))
+  # assign(paste0("hdma_county_", gsub("[^0-9]", "", hmda_files[i])), data)
+  return(data)
 })
 
 # Assign the results to the global environment
-for (i in seq_along(results)) {
-  assign(paste0("hdma_county_", results[[i]]$year), results[[i]]$data, envir = .GlobalEnv)
-  print(paste0("HDMA is successfully saved for the year: ", results[[i]]$year))
+for (i in seq_along(result_hmda)) {
+  assign(paste0("hmda_county_", result_hmda[[i]]$activity_year), result_hmda[[i]], envir = .GlobalEnv)
 }
+
+
+
+
+
 
 
 csv_lra <- list.files(paste0(A, "a_hdma_lra/"), pattern = ".csv")
