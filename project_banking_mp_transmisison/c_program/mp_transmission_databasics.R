@@ -224,61 +224,6 @@ if (!validate(paste(json_raw, collapse = "\n"))) {
 
 # Test: HMDA --- 
 
-
-
-
-
-
-
-
-
-
-
-READBIGDATA <- function(file, path) {
-  library(data.table)
-  setwd(paste0(A, path))
-  data <- fread(file, colClasses = "character")
-  return(data)
-}
-
-
-
-MERGEHDMATXT <- function(lrafilex, panelfilex) {
-  
-  # Import LRA data + select the right columns to reduce data size
-  lra <- future_lapply(lrafilex, READBIGDATA, path = "a_hdma_lra/")
-  lra <- lra[[1]]
-  lra <- lra[, c("activity_year", "respondent_id", "agency_code", "loan_amount", "state_code", "county_code")]
-  
-  # Import Panel data and retrieve all unique observation in order to
-  # get the all unique respondent_id and agency_code combinations.
-  # This is later needed to identify Commercial Banks that hand out Mortgages.
-  panel <- future_lapply(panelfilex, READBIGDATA, path = "b_hdma_panel/")
-  panel <- panel[[1]]
-  panel <- panel[, c("respondent_id", "agency_code", "other_lender_code")]
-  panel <- unique(panel, by = c("respondent_id", "agency_code"))
-  
-  # Performs a left_join
-  main <- left_join(lra, panel, by = c("respondent_id", "agency_code"))
-  
-  # Check if LRA and main dataset have same length
-  
-  if (nrow(main) == nrow(lra)) {
-    message("Merging successful for year ", lra$activity_year[1])
-  } else {
-    warning("Merging issues for year ", lra$activity_year[1], ": LRA observations: ", nrow(lra), 
-            ", Merged observations: ", nrow(main))
-  }
-  
-  # SAVE
-  SAVE(dfx = main, namex = paste0("hmda_raw_", main$activity_year[1]))
-  
-  # Clean up memory space
-  rm(list = c("lra", "main", "panel"))
-  
-}
-
-
 lra_txt_files <- list.files(paste0(A, "a_hdma_lra/"), pattern = ".txt")
 lra_txt_files <- lra_txt_files[1:2]
 panel_txt_files <- list.files(paste0(A, "b_hdma_panel/"), pattern = ".txt")
@@ -312,13 +257,9 @@ parLapply(cl, seq_along(lra_txt_files), function(i) {
 
 plan(list(multisession, multisession))
 future_lapply(seq_along(lra_txt_files), function(i) {
-  MERGEHDMATXT(lrafilex = lra_txt_files[i], panelfilex = panel_txt_files[i])
+  MERGEHMDATXT(lrafilex = lra_txt_files[i], panelfilex = panel_txt_files[i])
 })
-# Stop parallel processing 
-# stopCluster(cl)
 
-plan(multisession)
-MERGEHDMATXT(lrafilex =  txt_lra[1], panelfilex = txt_panel[1])
 
 
 
