@@ -238,48 +238,83 @@ if (!identical(gsub("[^0-9]", "", lra_txt_files), gsub("[^0-9]", "", panel_txt_f
   stop("LRA and PANEL years are not aligning.")
 }
 
-# Create cluster for parallel processing
-# cl <- makeCluster(detectCores() - 1 )
+# Set up 
+plan(list(multisession, multisession), workers = availableCores() - 1)
 
-
-# Import objects from the Global Environment as they are not available in the 
-# in the clusters (divide the task)
-clusterExport(cl, varlist = c("MERGEHDMATXT", "READBIGDATA", "A"))
-
-# Read all .txt files
-parLapply(cl, seq_along(lra_txt_files), function(i) {
-  # Merge Datasets of HDMA
-  MERGEHDMATXT(lrafilex =  lra_txt_files[i], panelfilex = panel_txt_files[i])
-  # Print after succesfully importing the data
-  print(paste0("HDMA is succesfully merged for the year:", gsub("^[0-9]", "", )))
-}
-)
-
-plan(list(multisession, multisession))
+# Import all 
 future_lapply(seq_along(lra_txt_files), function(i) {
+  # Merge HDMA Panel and LRA files
   MERGEHMDATXT(lrafilex = lra_txt_files[i], panelfilex = panel_txt_files[i])
+  # Print after 
+  print(paste0("HDMA is succesfully saved for the year: ", gsub("[^0-9]", "", lra_txt_files[i])))
 })
 
 
+hmda_files <- list.files(TEMP, pattern = "hmda")
+
+COUNTYLEVEL <- function (filesnamex) {
+  
+  # load raw hmda files
+  load(paste0(TEMP, "/", filesnamex))
+  
+  # retrieve current loaded hmda file and save into standardized name
+  files_list <- ls(pattern = "raw")
+  main <- get(files_list)
+  
+  # Check if vector is only 1 element
+  if (length(files_list) != 1) {
+    stop("STOP: Only one dataset at a time!")
+  }
+  
+  # Filter for only commercial banks, who distributed mortgages + for available to 
+  # state_code and county_code
+  main <- main[other_lender_code == 1]
+  main <- main[state_code != "" | county_code != ""]
+  
+  # Excluding: Puerto Rico (72), US Virgin Islands (78), American Samoa (60), 
+  # Northern Marian Islands (69), U.S. Minor Outlying Islands (74)
+  main <- main[!state_code %in% c("72", "66", "60", "69", "74")]
+  
+  # Create fips-code (unique identifier for each county; state_code + county_code)
+  main <- main[, fips := paste0(state_code, county_code, sep = "")]
+  # main <- main[, fips := as.integer(fips)]
+  
+  # Clean loan amount variable is available in thousands
+  main <- main[, loan_amount := as.integer(gsub("0", "", loan_amount))]
+  
+  # Keep only YEAR, fips-code and the loan amount in 000s
+  main <- main[, c("activity_year", "fips", "loan_amount")]
+  main <- main[, activity_year := as.integer(activity_year)]
+  
+  # Exclude all values where the fips code is incomplete # only 3134 counties instead of 3142
+  main <- main[nchar(fips) == 5]
+  
+  # Collapse by county and sum up all loan amounts within a county
+  main <- main[, .(total_amount_loan = sum(loan_amount), by = fips)]
+  
+  #SAVE and assign n
+  SAVE(dfx = main, namex = paste0("hdma_county_", gsub("[^0-9]", "", files_list)))
+  return(main)
+  
+  # Remover raw dataset from global enviroment
+  rm(list = c(files_list))
+}
 
 
+plan(list(multisession, multisession), workers = availableCores() - 1)
 
-# filter for only commercial banks, who distributed mortgages 
-dt_txt_main <- dt_txt_main[other_lender_code == 1]
-dt_txt_main <- dt_txt_main[, fips := paste0(state_code, county_code, sep = "")]
-dt_txt_main <- dt_txt_main[, loan_amount := gsub("0", "", loan_amount)]
-dt_txt_main <- dt_txt_main[, loan_amount := as.integer(loan_amount)]
-dt_txt_main <- dt_txt_main[state_code != "" | county_code != ""]
+result_hdma <- future_lapply(seq_along(hmda_files), function(i) {
+  # Merge HDMA Panel and LRA files
+  data <- COUNTYLEVEL(hmda_files[i]) 
+  assign(paste0("hdma_county_", gsub("[^0-9]", "", hmda_files[i])), data)
+  print(paste0("HDMA is succesfully saved for the year: ", gsub("[^0-9]", "", lra_txt_files[i])))
+})
 
-# Excluding: Puerto Rico (72), US Virgin Islands (78), American Samoa (60), 
-# Northern Marian Islands (69), U.S. Minor Outlying Islands (74)
-dt_txt_main <- dt_txt_main[!state_code %in% c("72", "66", "60", "69", "74")] # exlude Puerto Rico
-# Exclude all values where the fips code is incomplete # only 3134 counties instead of 3142
-dt_txt_main <- dt_txt_main[nchar(fips) == 5]
-# rm(list = dt_txt_lra)
-
-dt_txt_main <- dt_txt_main[, .(total_amount_loan = sum(loan_amount), by = fips)]
-
+# Assign the results to the global environment
+for (i in seq_along(results)) {
+  assign(paste0("hdma_county_", results[[i]]$year), results[[i]]$data, envir = .GlobalEnv)
+  print(paste0("HDMA is successfully saved for the year: ", results[[i]]$year))
+}
 
 
 csv_lra <- list.files(paste0(A, "a_hdma_lra/"), pattern = ".csv")
