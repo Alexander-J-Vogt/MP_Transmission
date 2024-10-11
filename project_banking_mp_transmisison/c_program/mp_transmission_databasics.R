@@ -318,19 +318,48 @@ result_hmda <- future_lapply(seq_along(hmda_files), function(i) {
   return(data)
 })
 
+
 # Assign the results to the global environment
 for (i in seq_along(result_hmda)) {
   assign(paste0("hmda_county_", result_hmda[[i]]$activity_year), result_hmda[[i]], envir = .GlobalEnv)
 }
 
 
+lra_csv_files <- list.files(paste0(A, "a_hdma_lra/"), pattern = "labels")
+lra_csv_files <- lra_csv_files[1:2]
+all_files <- list.files(paste0(A, "b_hdma_panel/"), pattern = ".csv")
+panel_csv_files <- all_files[grepl("hmda", all_files, perl = TRUE)]
+panel_csv_files <- panel_csv_files[1:2]
+
+# Check if file years are aligning in lra and panel and have the same length
+if (length(lra_csv_files) != length(panel_csv_files)) {
+  stop("The LRA and Panel files lists must be of the same length")
+}
+
+if (!identical(gsub("[^0-9]", "", lra_csv_files), gsub("[^0-9]", "", panel_csv_files))) {
+  stop("LRA and PANEL years are not aligning.")
+}
+
+plan(list(multisession, multisession), workers = availableCores() - 1)
+future_lapply(seq_along(lra_csv_files), function(i) {
+  # Merge HDMA Panel and LRA files
+  MERGEHMDATXT(lrafilex = lra_csv_files[i], panelfilex = panel_csv_files[i])
+  # Print after 
+  print(paste0("HDMA is succesfully saved for the year: ", gsub("[^0-9]", "", lra_txt_files[i])))
+})
+
+
+# Then filter files that contain both 'panel' and 'hmda' using grepl with Perl-like regular expressions
+panel_txt_files <- panel_txt_files[1:2]
+
+test <- READBIGDATA(file = "hmda_2008_nationwide_all-records_labels.csv", path = "a_hdma_lra")
+test1 <- fread(file = paste0(A,"a_hdma_lra/", "hmda_2008_nationwide_all-records_labels.csv"), colClasses = "character", mmap = FALSE,  select = c("as_of_year", "respondent_id", "loan_amount_000s", "county_code", "state_code"))
+test  fread()
 
 
 
-
-
-csv_lra <- list.files(paste0(A, "a_hdma_lra/"), pattern = ".csv")
-csv_panel <- list.files(paste0(A, "b_hdma_panel/"), pattern = ".csv")
+csv_lra <- list.files(paste0(A, "a_hdma_lra/"), pattern = "label")
+csv_panel <- list.files(paste0(A, "b_hdma_panel/"), pattern = "labels")
 csv_lra <- csv_lra[[4]]
 csv_panel <- csv_panel[[4]]
 
