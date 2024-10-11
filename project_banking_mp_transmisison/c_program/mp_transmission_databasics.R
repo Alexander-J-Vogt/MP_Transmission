@@ -223,54 +223,107 @@ if (!validate(paste(json_raw, collapse = "\n"))) {
 }
 
 # Test: HMDA --- 
-library(parallel)
-library(data.table)
-
-csv_lra <- list.files(paste0(A, "a_hdma_lra/"), pattern = ".csv")
-csv_panel <- list.files(paste0(A, "b_hdma_panel/"), pattern = ".csv")
-
-txt_lra <- list.files(paste0(A, "a_hdma_lra/"), pattern = ".txt")
-txt_lra <- txt_lra[1]
-txt_panel <- list.files(paste0(A, "b_hdma_panel/"), pattern = ".txt")
-txt_panel <- txt_panel[1]
 
 
 
 
-num_cores <-  detectCores() -1
 
-read_csv_file <- function(file) {
-  library(data.table)
-  setwd(paste0(A, "hmda/"))
-  data <- fread(file)
-  return(data)
-}
 
-READTXT <- function(file, path) {
+
+
+
+
+
+READBIGDATA <- function(file, path) {
   library(data.table)
   setwd(paste0(A, path))
-  data <- fread(file)
+  data <- fread(file, colClasses = "character")
   return(data)
 }
 
-census_tract <- read.csv(paste0(A, "c_census/","Tract_Level_PDB_Version2.csv"), skip = 1)
 
-cl <- makeCluster(num_cores)
 
-clusterExport(cl, varlist = c("read_csv_file", "A"))
+MERGEHDMATXT <- function(lrafilex, panelfilex) {
+  
+  # Import LRA data + select the right columns to reduce data size
+  lra <- future_lapply(lrafilex, READBIGDATA, path = "a_hdma_lra/")
+  lra <- lra[[1]]
+  lra <- lra[, c("activity_year", "respondent_id", "agency_code", "loan_amount", "state_code", "county_code")]
+  
+  # Import Panel data and retrieve all unique observation in order to
+  # get the all unique respondent_id and agency_code combinations.
+  # This is later needed to identify Commercial Banks that hand out Mortgages.
+  panel <- future_lapply(panelfilex, READBIGDATA, path = "b_hdma_panel/")
+  panel <- panel[[1]]
+  panel <- panel[, c("respondent_id", "agency_code", "other_lender_code")]
+  panel <- unique(panel, by = c("respondent_id", "agency_code"))
+  
+  # Performs a left_join
+  main <- left_join(lra, panel, by = c("respondent_id", "agency_code"))
+  
+  # Check if LRA and main dataset have same length
+  
+  if (nrow(main) == nrow(lra)) {
+    message("Merging successful for year ", lra$activity_year[1])
+  } else {
+    warning("Merging issues for year ", lra$activity_year[1], ": LRA observations: ", nrow(lra), 
+            ", Merged observations: ", nrow(main))
+  }
+  
+  # SAVE
+  SAVE(dfx = main, namex = paste0("hmda_raw_", main$activity_year[1]))
+  
+  # Clean up memory space
+  rm(list = c("lra", "main", "panel"))
+  
+}
 
-# csv_data <- parLapply(cl, csv_files, read_csv_file)
-dt_txt_lra <- parLapply(cl, txt_lra, READTXT, path = "a_hdma_lra/")
-dt_txt_lra <- dt_txt_lra[[1]]
-dt_txt_lra <- dt_txt_lra[, c("activity_year", "respondent_id", "agency_code", "loan_amount", "state_code", "county_code")]
 
-dt_txt_panel <- parLapply(cl, txt_panel, READTXT, path = "b_hdma_panel/")
-dt_txt_panel <- dt_txt_panel[[1]]
-dt_txt_panel <- dt_txt_panel[, c("respondent_id", "agency_code", "other_lender_code")]
-dt_txt_panel <- unique(dt_txt_panel, by = c("respondent_id", "agency_code"))
+lra_txt_files <- list.files(paste0(A, "a_hdma_lra/"), pattern = ".txt")
+lra_txt_files <- lra_txt_files[1:2]
+panel_txt_files <- list.files(paste0(A, "b_hdma_panel/"), pattern = ".txt")
+panel_txt_files <- panel_txt_files[1:2]
 
-dt_txt_main <- left_join(dt_txt_lra, dt_txt_panel, by = c("respondent_id", "agency_code"))
-# filter for only commerical banks, who distributed mortages 
+# Check if file years are aligning in lra and panel and have the same length
+if (length(lra_txt_files) != length(panel_txt_files)) {
+  stop("The LRA and Panel files lists must be of the same length")
+}
+
+if (!identical(gsub("[^0-9]", "", lra_txt_files), gsub("[^0-9]", "", panel_txt_files))) {
+  stop("LRA and PANEL years are not aligning.")
+}
+
+# Create cluster for parallel processing
+# cl <- makeCluster(detectCores() - 1 )
+
+
+# Import objects from the Global Environment as they are not available in the 
+# in the clusters (divide the task)
+clusterExport(cl, varlist = c("MERGEHDMATXT", "READBIGDATA", "A"))
+
+# Read all .txt files
+parLapply(cl, seq_along(lra_txt_files), function(i) {
+  # Merge Datasets of HDMA
+  MERGEHDMATXT(lrafilex =  lra_txt_files[i], panelfilex = panel_txt_files[i])
+  # Print after succesfully importing the data
+  print(paste0("HDMA is succesfully merged for the year:", gsub("^[0-9]", "", )))
+}
+)
+
+plan(list(multisession, multisession))
+future_lapply(seq_along(lra_txt_files), function(i) {
+  MERGEHDMATXT(lrafilex = lra_txt_files[i], panelfilex = panel_txt_files[i])
+})
+# Stop parallel processing 
+# stopCluster(cl)
+
+plan(multisession)
+MERGEHDMATXT(lrafilex =  txt_lra[1], panelfilex = txt_panel[1])
+
+
+
+
+# filter for only commercial banks, who distributed mortgages 
 dt_txt_main <- dt_txt_main[other_lender_code == 1]
 dt_txt_main <- dt_txt_main[, fips := paste0(state_code, county_code, sep = "")]
 dt_txt_main <- dt_txt_main[, loan_amount := gsub("0", "", loan_amount)]
@@ -280,17 +333,35 @@ dt_txt_main <- dt_txt_main[state_code != "" | county_code != ""]
 # Excluding: Puerto Rico (72), US Virgin Islands (78), American Samoa (60), 
 # Northern Marian Islands (69), U.S. Minor Outlying Islands (74)
 dt_txt_main <- dt_txt_main[!state_code %in% c("72", "66", "60", "69", "74")] # exlude Puerto Rico
-# Exclude all values where the fips code is incomplete
+# Exclude all values where the fips code is incomplete # only 3134 counties instead of 3142
 dt_txt_main <- dt_txt_main[nchar(fips) == 5]
+# rm(list = dt_txt_lra)
 
 dt_txt_main <- dt_txt_main[, .(total_amount_loan = sum(loan_amount), by = fips)]
 
-csv_data <- csv_data[[1]]
-csv_data <- csv_data[, c("activity_year", "respondent_id", "agency_code", "", "loan_amount_000s", "state_code", "county_code", "action_taken")]
+
+
+csv_lra <- list.files(paste0(A, "a_hdma_lra/"), pattern = ".csv")
+csv_panel <- list.files(paste0(A, "b_hdma_panel/"), pattern = ".csv")
+csv_lra <- csv_lra[[4]]
+csv_panel <- csv_panel[[4]]
+
+dt_csv_lra <- parLapply(cl, csv_lra, READBIGDATA, path = "a_hdma_lra/")
+dt_csv_lra <- dt_csv_lra[[1]]
+
+
+dt_txt_panel <- parLapply(cl, txt_panel, READBIGDATA, path = "b_hdma_panel/")
+dt_txt_panel <- dt_txt_panel[[1]]
+dt_txt_panel <- dt_txt_panel[, c("respondent_id", "agency_code", "other_lender_code")]
+dt_txt_panel <- unique(dt_txt_panel, by = c("respondent_id", "agency_code"))
 
 
 
-stopCluster(cl)
+
+csv_data <- csv_data[, c("activity_year", "respondent_id", "agency_code", "loan_amount_000s", "state_code", "county_code")]
+
+
+
 
 
 
