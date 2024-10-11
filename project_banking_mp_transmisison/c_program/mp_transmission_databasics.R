@@ -26,11 +26,11 @@ gc()
 # Call Rreport: Information on bank-level data
 # df_callreport <- read_dta(paste0(A,"wang_22_data/", "callreport_ffiec_merged.dta"))
 
-### Importing Summary of Deposits (SOD) (by FDIC) ------------------------------------
+### Importing Summary of Deposits (SOD) (by FDIC) ------------------------------
 ## Importing Summary of Deposits (by FDIC) from Wang et al. (2022) -------------
 df_sod <- read_dta(paste0(A,"wang_22_data/", "FDIC_SOD.dta"))
 
-### 1. Importing Summary of Deposits (by FDIC) for the years 2018 to 2024 ---------
+### 1. Importing Summary of Deposits (by FDIC) for the years 2018 to 2024 ------
 ## 1.1 Import Files ----
 files_sod <- list.files(paste0(A, "sod_direct/"))
 files_sod <- files_sod[grepl("\\csv$",files_sod)]
@@ -97,6 +97,7 @@ rm(list = "combined_sod")
 # Clear unused memory
 gc()
 
+LOAD(paste0(TEMP, "/combined_sod"))
 ### 2. Import: Mortgages Data  -------------------------------------------------
     
 df_new_mortgage <- read.csv(paste0(A, "mortgage_data/", "nmdb-new-mortgage-statistics-state-annual.csv"))
@@ -198,6 +199,97 @@ SAVE(dfx = df_pop_us_complete, namex = "pop_us")
 
 # remove all created objects
 rm(list = ls(pattern = "df_pop_us"))
+
+
+## Test ----
+
+setwd(paste0(A, "county_level_data/"))
+county_level <- fromJSON("counties.json")
+
+# Read the JSON file as a raw text
+json_raw <- readLines("counties.json", warn = FALSE)
+
+# Replace NaN with null (or another placeholder)
+json_cleaned <- gsub("NaN", "null", json_raw)
+
+json_cleaned_string <- paste(json_cleaned, collapse = "\n")
+
+data <- fromJSON(json_cleaned_string)
+json_raw <- readLines("path_to_your_file.json", warn = FALSE)
+if (!validate(paste(json_raw, collapse = "\n"))) {
+  cat("The JSON file is not valid!\n")
+} else {
+  data <- fromJSON(paste(json_raw, collapse = "\n"))
+}
+
+# Test: HMDA --- 
+library(parallel)
+library(data.table)
+
+csv_lra <- list.files(paste0(A, "a_hdma_lra/"), pattern = ".csv")
+csv_panel <- list.files(paste0(A, "b_hdma_panel/"), pattern = ".csv")
+
+txt_lra <- list.files(paste0(A, "a_hdma_lra/"), pattern = ".txt")
+txt_lra <- txt_lra[1]
+txt_panel <- list.files(paste0(A, "b_hdma_panel/"), pattern = ".txt")
+txt_panel <- txt_panel[1]
+
+
+
+
+num_cores <-  detectCores() -1
+
+read_csv_file <- function(file) {
+  library(data.table)
+  setwd(paste0(A, "hmda/"))
+  data <- fread(file)
+  return(data)
+}
+
+READTXT <- function(file, path) {
+  library(data.table)
+  setwd(paste0(A, path))
+  data <- fread(file)
+  return(data)
+}
+
+cl <- makeCluster(num_cores)
+
+clusterExport(cl, varlist = c("read_csv_file", "A"))
+
+# csv_data <- parLapply(cl, csv_files, read_csv_file)
+dt_txt_lra <- parLapply(cl, txt_lra, READTXT, path = "a_hdma_lra/")
+dt_txt_lra <- dt_txt_lra[[1]]
+dt_txt_lra <- dt_txt_lra[, c("activity_year", "respondent_id", "agency_code", "loan_amount", "state_code", "county_code")]
+
+dt_txt_panel <- parLapply(cl, txt_panel, READTXT, path = "b_hdma_panel/")
+dt_txt_panel <- dt_txt_panel[[1]]
+dt_txt_panel <- dt_txt_panel[, c("respondent_id", "agency_code", "other_lender_code")]
+dt_txt_panel <- unique(dt_txt_panel, by = c("respondent_id", "agency_code"))
+
+dt_txt_main <- left_join(dt_txt_lra, dt_txt_panel, by = c("respondent_id", "agency_code"))
+# filter for only commerical banks, who distributed mortages 
+dt_txt_main <- dt_txt_main[other_lender_code == 1]
+dt_txt_main <- dt_txt_main[, fips := paste0(state_code, county_code, sep = "")]
+dt_txt_main <- dt_txt_main[, loan_amount := gsub("0", "", loan_amount)]
+dt_txt_main <- dt_txt_main[, loan_amount := as.integer(loan_amount)]
+dt_txt_main <- dt_txt_main[state_code != "" | county_code != ""]
+
+# Excluding: Puerto Rico (72), US Virgin Islands (78), American Samoa (60), 
+# Northern Marian Islands (69), U.S. Minor Outlying Islands (74)
+dt_txt_main <- dt_txt_main[!state_code %in% c("72", "66", "60", "69", "74")] # exlude Puerto Rico
+# Exclude al values whereht county_code or the state_code is missin
+dt_txt_main <- dt_txt_main[nchar(fips) == 5]
+
+dt_txt_main <- dt_txt_main[, .(total_amount_loan = sum(loan_amount), by = fips)]
+
+csv_data <- csv_data[[1]]
+csv_data <- csv_data[, c("activity_year", "respondent_id", "agency_code", "", "loan_amount_000s", "state_code", "county_code", "action_taken")]
+
+
+
+stopCluster(cl)
+
 
 
 
