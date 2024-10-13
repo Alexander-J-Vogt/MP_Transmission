@@ -396,6 +396,8 @@ lapply(lra_files, function(file) {
              new = c("activity_year", "respondent_id", "agency_code", "loan_amount", "state_code", "county_code"))
   }
   
+  
+  
   # Save the raw lra dataset
   SAVE(dfx = data, namex = paste0("hmda_lra_", gsub("[^0-9]", "", file)), pattdir = TEMP)
   print(paste0("LRA: Successful import of the year ", gsub("[^0-9]", "", file)))
@@ -411,13 +413,14 @@ print(end_time - start_time)
 
 
   
-lapply(panel_files, function(file) {
+purrr::walk(panel_files, function(file) {
   # Import Panel data and retrieve all unique observation in order to
   # get the all unique respondent_id and agency_code combinations.
   # This is later needed to identify Commercial Banks that hand out Mortgages.
   # Check which year of the data is imported and adjust the column names.
+  file <- panel_files[12]
   year <- as.integer(gsub("[^0-9]", "", file))
-
+  
   if (year == 2007) {
     # Reading in the file from 2009 needed a manual fix by skiping the last observation
     data <- fread(paste0(A, "b_hdma_panel/", file), nrows = 8608, colClasses = "character")
@@ -435,8 +438,10 @@ lapply(panel_files, function(file) {
              old = c("Respondent ID", "Agency Code", "Other Lender Code"), 
              new = c("respondent_id", "agency_code", "other_lender_code"))
   }
-
+  
+  # select the relevant variables
   data <- data[, c("respondent_id", "agency_code", "other_lender_code")]
+  # get rid off any duplicants
   data <- unique(data, by = c("respondent_id", "agency_code"))
   
   SAVE(dfx = data, namex = paste0("hmda_panel_", year), pattdir = TEMP)
@@ -446,9 +451,34 @@ lapply(panel_files, function(file) {
 })
   
 
-lapply(, function(i) {
-  lra <- 
-
+purrr::walk(2000:2001, function(i) {
+  # i <-2000
+  lra <- paste0("hmda_lra_", i)
+  panel <- paste0("hmda_panel_", i)
+  
+  load(file = paste0(TEMP, "/", lra, ".rda"))
+  load(file = paste0(TEMP, "/", panel, ".rda"))
+  
+  dflra <- get(lra)
+  dfpanel <- get(panel)
+  
+  # Performs a left_join
+  main <- left_join(dflra, dfpanel, by = c("respondent_id", "agency_code"))
+  
+  # Check if LRA and main dataset have same length
+  
+  if (nrow(main) == nrow(dflra)) {
+    message("Merge successful for year ", i)
+  } else {
+    warning("Merging issues for year ", i, ": LRA observations: ", nrow(get("lra")),
+            ", Merged observations: ", nrow(main))
+  }
+  
+  # Save merged file
+  SAVE(dfx = main, namex = paste0("hmda_merge_", i))
+  
+  # Clean up memory space
+  rm(list = c(paste0("hmda_lra_", i), paste0("hmda_panel_", i), "main"))
 })
 
 
