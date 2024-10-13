@@ -19,17 +19,20 @@ gc()
 
 hmda_files <- list.files(paste0(TEMP, "/") , pattern = "merge")
 start_time <- Sys.time()
-list_merge <- lapply(hmda_files, COUNTYLEVEL)
+mortgages_banks <- lapply(hmda_files, COUNTYLEVEL, instfilter = TRUE)
+mortgages_all <- lapply(hmda_files, COUNTYLEVEL, instfilter = FALSE)
 end_time <- Sys.time()
 print(end_time - start_time)
 
-COUNTYLEVEL <- function (filenamex) {
-  # filenamex <- hmda_files[8]
+COUNTYLEVEL <- function (filenamex, instfilter) {
+  # filenamex <- hmda_files[18]
+  # instfilter <-  FALSE
   year <- as.integer(gsub("[^0-9]", "", filenamex))
   # load raw hmda files
   load(paste0(TEMP, "/",filenamex))
   
   # retrieve current loaded hmda file and save into standardized name
+  # file_list <- ls(pattern = "merge")
   file_list <- ls(pattern = "merge")
   main <- get(file_list)
   
@@ -49,11 +52,14 @@ COUNTYLEVEL <- function (filenamex) {
   } else if (year %in% c(2007:2017)) {
     bank_code <- c(1, 2) # All depository instiutions and their mortgage-subdivisions
   }
-  
+
   # Filter for only commercial banks, who distributed mortgages + for available to 
   # state_code and county_code
-  main <- main[other_lender_code %in% bank_code]
+  if (instfilter) {
+    main <- main[other_lender_code %in% bank_code]
+  }
   main <- main[state_code != "" & county_code != ""]
+  # main <- main[state_code == ""| county_code == ""]
   
   # Check if there any missing in the columns
   message(paste0("Current Dataset: ", year))
@@ -103,14 +109,23 @@ COUNTYLEVEL <- function (filenamex) {
   main <- main[, .(year, fips, total_amount_loan)]
   
   #SAVE and assign n
-  SAVE(dfx = main, namex = paste0("hdma_county_", year))
-  
-  # Print to console the the process has been finished for the currrent dataset
-  message(paste("Basic Data Cleaning is finished for: ", year))
-  
+  if (instfilter) {
+    SAVE(dfx = main, namex = paste0("hdma_county_", year))
+  } else {
+    SAVE(dfx = main, namex = paste0("hdma_allinst_", year))
+  }
+  # Print to console the the process has been finished for the current dataset
+  if (instfilter) {
+    message(paste("Only Banks: Basic Data Cleaning is finished for: ", year))
+  } else {
+    message(paste("All Instiutions: Basic Data Cleaning is finished for: ", year))
+  }
   # Save county-level dataset in global environment
   return(main)
   
   # Remover raw dataset from global environment
   rm(list = c(file_list, "main"))
 }
+
+
+sapply(list_merge, length)
