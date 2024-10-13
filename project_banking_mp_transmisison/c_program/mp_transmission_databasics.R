@@ -222,12 +222,14 @@ if (!validate(paste(json_raw, collapse = "\n"))) {
   data <- fromJSON(paste(json_raw, collapse = "\n"))
 }
 
-# Test: HMDA --- 
+### Home Mortgage Disclosure Act (HMDA) ---- 
 
+## HMDA Data for the years 2000 to 2006 ----
+# Read all lra and panel data files in their respective file
 lra_txt_files <- list.files(paste0(A, "a_hdma_lra/"), pattern = ".txt")
-lra_txt_files <- lra_txt_files[1:2]
+# lra_txt_files <- lra_txt_files[1]
 panel_txt_files <- list.files(paste0(A, "b_hdma_panel/"), pattern = ".txt")
-panel_txt_files <- panel_txt_files[1:2]
+# panel_txt_files <- panel_txt_files[1]
 
 # Check if file years are aligning in lra and panel and have the same length
 if (length(lra_txt_files) != length(panel_txt_files)) {
@@ -238,21 +240,47 @@ if (!identical(gsub("[^0-9]", "", lra_txt_files), gsub("[^0-9]", "", panel_txt_f
   stop("LRA and PANEL years are not aligning.")
 }
 
-# Set up 
+# Setting up a parallel processing plan with two levels of parallel execution using 
+# multisession
 plan(list(multisession, multisession), workers = availableCores() - 1)
 
-# Import all 
+# Import all HMDA dataset for the years 2000 to 2006 with the help of the 
+# MERGEHMDATXT function (Import the panel and LRA dataset + merges them by 
+# respondent_id and agency_code)
+col_names <- c("activity_year", "respondent_id", "agency_code", "loan_amount", "state_code", "county_code")
 future_lapply(seq_along(lra_txt_files), function(i) {
-  # Merge HDMA Panel and LRA files
-  MERGEHMDATXT(lrafilex = lra_txt_files[i], panelfilex = panel_txt_files[i])
-  # Print after 
+  # Import and merge HDMA Panel and LRA files
+  MERGEHMDATXT(lrafilex = lra_txt_files[i], panelfilex = panel_txt_files[i], varnamex = col_names)
+  # Print that merge for certain year has been completed
   print(paste0("HDMA is succesfully saved for the year: ", gsub("[^0-9]", "", lra_txt_files[i])))
 })
 
+# Basic Data Cleaning as describes in the function COUNTYLEVEL
+# i) Filters for commerical banks or mortgage-subsidaries of banks
+# ii) Filters all observation with missing state & county code
+# iii) Filters all US-Territories
+# iv) Creates fips-code (unique identifier for each county)
+# v) Collapses the data by fips and sums up the loan amount within each county
+hmda_files <- list.files(TEMP, pattern = "raw")
+hmda_files <- hmda_files[, gsub("[^0-9]", "", hmda_files) %in% c(2000:2006)]
 
-hmda_files <- list.files(TEMP, pattern = "hmda")
+result_hmda <- future_lapply(seq_along(hmda_files), function(i) {
+  # Merge HDMA Panel and LRA files
+  data <- COUNTYLEVEL(hmda_files[i], bank_code = c(1)) 
+  # assign(paste0("hdma_county_", gsub("[^0-9]", "", hmda_files[i])), data)
+  return(data)
+})
 
-COUNTYLEVEL <- function (filesnamex) {
+# Assign the results to the global environment
+for (i in seq_along(result_hmda)) {
+  assign(paste0("hmda_county_", result_hmda[[i]]$activity_year), result_hmda[[i]], envir = .GlobalEnv)
+}
+
+hmda_files <- hmda_files[3]
+main_2007 <- COUNTYLEVEL(hmda_files[3], bank_code = c(1, 2))
+
+
+COUNTYLEVEL <- function (filesnamex , bank_code) {
   
   # load raw hmda files
   load(paste0(TEMP, "/",filesnamex))
@@ -270,12 +298,12 @@ COUNTYLEVEL <- function (filesnamex) {
   
   # Filter for only commercial banks, who distributed mortgages + for available to 
   # state_code and county_code
-  main <- main[other_lender_code == 1]
-  main <- main[state_code != "" | county_code != ""]
+  main <- main[other_lender_code %in% bank_code]
+  main <- main[state_code != "" & county_code != ""]
   
   # Excluding: Puerto Rico (72), US Virgin Islands (78), American Samoa (60), 
-  # Northern Marian Islands (69), U.S. Minor Outlying Islands (74)
-  main <- main[!state_code %in% c("72", "66", "60", "69", "74")]
+  # Northern Marian Islands (69), U.S. Minor Outlying Islands (74), Guam (66)
+  main <- main[!state_code %in% c("72", "66", "60", "69", "74", "78")]
   
   # Create fips-code (unique identifier for each county; state_code + county_code)
   main <- main[, fips := paste0(state_code, county_code, sep = "")]
@@ -302,6 +330,8 @@ COUNTYLEVEL <- function (filesnamex) {
   
   #SAVE and assign n
   SAVE(dfx = main, namex = paste0("hdma_county_", gsub("[^0-9]", "", files_list)))
+  
+  # Save county-level dataset in global environment
   return(main)
   
   # Remover raw dataset from global enviroment
@@ -309,27 +339,10 @@ COUNTYLEVEL <- function (filesnamex) {
 }
 
 
-plan(list(multisession, multisession), workers = availableCores() - 1)
 
-result_hmda <- future_lapply(seq_along(hmda_files), function(i) {
-  # Merge HDMA Panel and LRA files
-  data <- COUNTYLEVEL(hmda_files[i]) 
-  # assign(paste0("hdma_county_", gsub("[^0-9]", "", hmda_files[i])), data)
-  return(data)
-})
+## HMDA Data for the years 2007 to 2017 ---- -----------------------------------
 
 
-# Assign the results to the global environment
-for (i in seq_along(result_hmda)) {
-  assign(paste0("hmda_county_", result_hmda[[i]]$activity_year), result_hmda[[i]], envir = .GlobalEnv)
-}
-
-
-lra_csv_files <- list.files(paste0(A, "a_hdma_lra/"), pattern = "labels")
-lra_csv_files <- lra_csv_files[1:2]
-all_files <- list.files(paste0(A, "b_hdma_panel/"), pattern = ".csv")
-panel_csv_files <- all_files[grepl("hmda", all_files, perl = TRUE)]
-panel_csv_files <- panel_csv_files[1:2]
 
 # Check if file years are aligning in lra and panel and have the same length
 if (length(lra_csv_files) != length(panel_csv_files)) {
@@ -340,6 +353,69 @@ if (!identical(gsub("[^0-9]", "", lra_csv_files), gsub("[^0-9]", "", panel_csv_f
   stop("LRA and PANEL years are not aligning.")
 }
 
+select_columns <- c("as_of_year", "respondent_id", "agency_code", "loan_amount_000s", "county_code", "state_code")
+
+# Import all HMDA datasets for the period 2007 to 2017
+plan(list(multisession, multisession), workers = availableCores() - 4)
+future_lapply(seq_along(lra_csv_files), function(i) {
+  # Merge HDMA Panel and LRA files
+  MERGEHMDA(lrafilex = lra_csv_files[i], panelfilex = panel_csv_files[i])
+  # Print after 
+  print(paste0("HDMA is succesfully saved for the year: ", gsub("[^0-9]", "", lra_csv_files[i])))
+  gc()
+})
+
+
+# Import of HMDA files -----
+lra_csv_files <- list.files(paste0(A, "a_hdma_lra/"), pattern = "labels")
+lra_csv_files <- lra_csv_files[1]
+all_files <- list.files(paste0(A, "b_hdma_panel/"), pattern = ".csv")
+panel_csv_files <- all_files[grepl("hmda", all_files, perl = TRUE)]
+panel_csv_files <- panel_csv_files[1]
+
+start_time <- Sys.time()
+for (i in seq_along(lra_csv_files)) {
+  data <- fread(paste0(A, "a_hdma_lra/", lra_csv_files[i]), colClasses = "character", select = select_columns)
+  SAVE(dfx = data, namex = paste0("hmda_lra_raw_", gsub("[^0-9]", "", lra_csv_files[i])), pattdir = paste0(A, "test"))
+  gc()
+  rm(data)
+}
+
+panel_columns <-  ()
+  
+for (i in seq_along(panel_csv_files)) {
+  data <- fread(paste0(A, "b_hdma_panel/", panel_csv_files[i]), colClasses = "character", select = select_columns)
+  SAVE(dfx = data, namex = paste0("hmda_p_raw_", gsub("[^0-9]", "", panel_csv_files[i])), pattdir = paste0(A, "test"))
+  gc()
+  rm(data)
+}
+  
+end_time <- Sys.time()
+print(end_time - start_time)
+
+# Basic data cleaning for the periods 2007 to 2017 -----------------------------
+hmda_files <- list.files(TEMP, pattern = "raw")
+hmda_files <- hmda_files[, gsub("[^0-9]", "", hmda_files) %in% c(2007:2017)]
+
+result_hmda <- future_lapply(seq_along(hmda_files), function(i) {
+  # Merge HDMA Panel and LRA files
+  data <- COUNTYLEVEL(hmda_files[i], bank_code = c(1,2)) 
+  # assign(paste0("hdma_county_", gsub("[^0-9]", "", hmda_files[i])), data)
+  return(data)
+  gc()
+})
+
+
+
+
+csv_lra <- list.files(paste0(A, "a_hdma_lra/"), pattern = "originated")
+csv_panel <- list.files(paste0(A, "b_hdma_panel/"))
+csv_panel <- csv_panel[as.integer(gsub("[^0-9]", "", csv_panel)) %in% c(2007:2017)]
+csv_lra <- csv_lra[1]
+csv_panel <- csv_panel[1]
+
+
+
 plan(list(multisession, multisession), workers = availableCores() - 1)
 future_lapply(seq_along(lra_csv_files), function(i) {
   # Merge HDMA Panel and LRA files
@@ -348,20 +424,25 @@ future_lapply(seq_along(lra_csv_files), function(i) {
   print(paste0("HDMA is succesfully saved for the year: ", gsub("[^0-9]", "", lra_txt_files[i])))
 })
 
+hmda_2000 <- lra_txt_files
 
-# Then filter files that contain both 'panel' and 'hmda' using grepl with Perl-like regular expressions
-panel_txt_files <- panel_txt_files[1:2]
 
-test <- READBIGDATA(file = "hmda_2008_nationwide_all-records_labels.csv", path = "a_hdma_lra")
-test1 <- fread(file = paste0(A,"a_hdma_lra/", "hmda_2008_nationwide_all-records_labels.csv"), colClasses = "character", mmap = FALSE,  select = c("as_of_year", "respondent_id", "loan_amount_000s", "county_code", "state_code"))
+
+
+test <- READBIGDATA(file = "hmda_2016_nationwide_originated-records_labels.csv", path = "a_hdma_lra")
+test2 <- READBIGDATA(file = panel_csv_files[1], path = "b_hdma_panel/")
+
+merge_test <- MERGEHMDACSV(lrafilex = csv_lra, panelfilex = csv_panel, varnamex = select_columns)
+
+test <- test[state_code != "" | county_code != ""]
+test1 <- fread(file = paste0(A,"b_hdma_panel/", panel_csv_files[1]), colClasses = "character", skip = 8609)
+test2 <- fread(file = paste0(A,"b_hdma_panel/", "hmda_2007_panel - Kopie.csv"), colClasses = "character", nrows = 8700)
+
+
 test  fread()
 
 
 
-csv_lra <- list.files(paste0(A, "a_hdma_lra/"), pattern = "label")
-csv_panel <- list.files(paste0(A, "b_hdma_panel/"), pattern = "labels")
-csv_lra <- csv_lra[[4]]
-csv_panel <- csv_panel[[4]]
 
 dt_csv_lra <- parLapply(cl, csv_lra, READBIGDATA, path = "a_hdma_lra/")
 dt_csv_lra <- dt_csv_lra[[1]]
