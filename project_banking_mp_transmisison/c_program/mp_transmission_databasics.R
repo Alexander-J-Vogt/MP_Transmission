@@ -374,8 +374,6 @@ panel_files <- list.files(paste0(A, "b_hdma_panel/"))
 panel_files <- panel_files[gsub("[^0-9]", "", panel_files) %in% c(2000:2017)]
 panel_files <- panel_files[1]
 
-lra_columns <- c("as_of_year", "respondent_id", "agency_code", "loan_amount_000s", "county_code", "state_code")
-
 start_time <- Sys.time()
 
 lapply(lra_files, function(file) {
