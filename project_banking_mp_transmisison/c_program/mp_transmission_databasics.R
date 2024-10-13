@@ -227,9 +227,9 @@ if (!validate(paste(json_raw, collapse = "\n"))) {
 ## HMDA Data for the years 2000 to 2006 ----
 # Read all lra and panel data files in their respective file
 lra_txt_files <- list.files(paste0(A, "a_hdma_lra/"), pattern = ".txt")
-# lra_txt_files <- lra_txt_files[1]
+lra_txt_files <- lra_txt_files[1]
 panel_txt_files <- list.files(paste0(A, "b_hdma_panel/"), pattern = ".txt")
-# panel_txt_files <- panel_txt_files[1]
+panel_txt_files <- panel_txt_files[1]
 
 # Check if file years are aligning in lra and panel and have the same length
 if (length(lra_txt_files) != length(panel_txt_files)) {
@@ -367,31 +367,93 @@ future_lapply(seq_along(lra_csv_files), function(i) {
 
 
 # Import of HMDA files -----
-lra_csv_files <- list.files(paste0(A, "a_hdma_lra/"), pattern = "labels")
-lra_csv_files <- lra_csv_files[1]
-all_files <- list.files(paste0(A, "b_hdma_panel/"), pattern = ".csv")
-panel_csv_files <- all_files[grepl("hmda", all_files, perl = TRUE)]
-panel_csv_files <- panel_csv_files[1]
+lra_files <- list.files(paste0(A, "a_hdma_lra/"))
+lra_files <- lra_files[gsub("[^0-9]", "", lra_files) %in% c(2000:2017)]
+# lra_files <- lra_files[1]
+panel_files <- list.files(paste0(A, "b_hdma_panel/"))
+panel_files <- panel_files[gsub("[^0-9]", "", panel_files) %in% c(2000:2017)]
+panel_files <- panel_files[1]
+
+lra_columns <- c("as_of_year", "respondent_id", "agency_code", "loan_amount_000s", "county_code", "state_code")
 
 start_time <- Sys.time()
-for (i in seq_along(lra_csv_files)) {
-  data <- fread(paste0(A, "a_hdma_lra/", lra_csv_files[i]), colClasses = "character", select = select_columns)
-  SAVE(dfx = data, namex = paste0("hmda_lra_raw_", gsub("[^0-9]", "", lra_csv_files[i])), pattdir = paste0(A, "test"))
-  gc()
-  rm(data)
-}
 
-panel_columns <-  ()
+lapply(lra_files, function(file) {
+  # Account for different column names
+  if (as.integer(gsub("[^0-9]", "", file) %in% c(2000:2006))) {
+    lra_columns <- c("activity_year", "respondent_id", "agency_code", "loan_amount", "state_code", "county_code")
+  } else if (as.integer(gsub("[^0-9]", "", file) %in% c(2007:2017))) {
+    lra_columns <- c("as_of_year", "respondent_id", "agency_code", "loan_amount_000s", "state_code", "county_code")
+  } 
   
-for (i in seq_along(panel_csv_files)) {
-  data <- fread(paste0(A, "b_hdma_panel/", panel_csv_files[i]), colClasses = "character", select = select_columns)
-  SAVE(dfx = data, namex = paste0("hmda_p_raw_", gsub("[^0-9]", "", panel_csv_files[i])), pattdir = paste0(A, "test"))
+  # Load all the raw LRA data on respondent-ID level (contains the information on each handed out loan)
+  data <- fread(paste0(A, "a_hdma_lra/", file), colClasses = "character", select = lra_columns)
+  
+  # Adjust Column names
+  if (as.integer(gsub("[^0-9]", "", file) %in% c(2007:2017))){
+    setnames(data,
+             old = c("as_of_year", "respondent_id", "agency_code", "loan_amount_000s", "state_code", "county_code"),
+             new = c("activity_year", "respondent_id", "agency_code", "loan_amount", "state_code", "county_code"))
+  }
+  
+  # Save the raw lra dataset
+  SAVE(dfx = data, namex = paste0("hmda_lra_", gsub("[^0-9]", "", file)), pattdir = TEMP)
+  print(paste0("LRA: Successful import of the year ", gsub("[^0-9]", "", file)))
+  
+  # Free unused memorey
   gc()
   rm(data)
-}
-  
+})
+
 end_time <- Sys.time()
 print(end_time - start_time)
+
+
+
+  
+lapply(panel_files, function(file) {
+  # Import Panel data and retrieve all unique observation in order to
+  # get the all unique respondent_id and agency_code combinations.
+  # This is later needed to identify Commercial Banks that hand out Mortgages.
+  # Check which year of the data is imported and adjust the column names.
+  year <- as.integer(gsub("[^0-9]", "", file))
+
+  if (year == 2007) {
+    # Reading in the file from 2009 needed a manual fix by skiping the last observation
+    data <- fread(paste0(A, "b_hdma_panel/", file), nrows = 8608, colClasses = "character")
+  } else {
+    data <- fread(paste0(A, "b_hdma_panel/", file), colClasses = "character")
+  }
+  
+  # Standardize the column names of the panel
+  if (year %in% c(2007:2009)) {
+    setnames(data, 
+             old = c("Respondent Identification Number", "Agency Code", "Other Lender Code"), 
+             new = c("respondent_id", "agency_code", "other_lender_code"))
+  } else if (year %in% c(2010:2017)) {
+    setnames(data, 
+             old = c("Respondent ID", "Agency Code", "Other Lender Code"), 
+             new = c("respondent_id", "agency_code", "other_lender_code"))
+  }
+
+  data <- data[, c("respondent_id", "agency_code", "other_lender_code")]
+  data <- unique(data, by = c("respondent_id", "agency_code"))
+  
+  SAVE(dfx = data, namex = paste0("hmda_panel_", year), pattdir = TEMP)
+  print(paste0("Panel: Successful import of the year ", year))
+  gc()
+  rm(data)
+})
+  
+
+lapply(, function(i) {
+  lra <- 
+
+})
+
+
+
+
 
 # Basic data cleaning for the periods 2007 to 2017 -----------------------------
 hmda_files <- list.files(TEMP, pattern = "raw")
