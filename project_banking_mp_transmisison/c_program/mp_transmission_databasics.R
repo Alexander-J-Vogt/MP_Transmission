@@ -106,7 +106,7 @@ for (i in seq_along(combined_sod)) {
 # Select the relevant variables of interest
 combined_sod <- combined_sod[, .(year, stcntybr, uninumbr, depsumbr, insured, 
                                  specdesc, sims_acquired_date, msabr, bkmo,
-                                 stnumbr, cntynumb)]
+                                 stnumbr, cntynumb, rssdid)]
 
 # Clean variables from all unusal characters
 combined_sod <- combined_sod[, depsumbr := gsub(",", "", depsumbr)]
@@ -155,11 +155,9 @@ sod_banks <- sod_banks[, insured := NULL]
 sod_all <- combined_sod
 
 
-
 # Save Combined (raw) SOD dataset# SNULLave Combined (raw) SOD dataset
 SAVE(dfx = sod_banks, namex = "banks_sod")
 SAVE(dfx = sod_all, namex =  "all_sod")
-
 
 # Clear Global Environment
 rm(list = c("combined_sod", "sod_banks", "sod_all", "fips_data"))
