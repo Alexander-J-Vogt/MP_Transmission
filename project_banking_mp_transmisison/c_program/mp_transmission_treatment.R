@@ -23,16 +23,18 @@ gc()
 # MAIN PART ####
 
 # Load the Summary of Deposits for the period 1994 to 2020
-sod <- LOAD(dfinput = "sod_banks", dfextension = ".rda")
+sod <- LOAD(dfinput = "banks_sod", dfextension = ".rda")
 setDT(sod)
 
 # Select the relevant variables for creating HHI by county-level
-sod <- sod[, .(year, stcntybr, depsumbr)]
+sod <- sod[, .(year, fips, depsumbr)]
 
 
 # Create HHI by county
+# Calculate the sum of deposits by year and fips-code
+sod <- sod[, cnty_tot_dep := sum(depsumbr), by =. (fips, year)]
 
-
+# Calculate the market-share of one 
 # Create turnover rate of branches for each year (sims_aquired_date)
 # Create dummy variable for whether county lays in a Metropolitan Statistical Area or not (msabr)
 # Create dummy whether county is has the main office or not (bkmo)
