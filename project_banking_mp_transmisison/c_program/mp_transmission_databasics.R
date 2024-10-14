@@ -76,23 +76,59 @@ for (file in sod_temp) {
 rm(list = str_sub(sod_temp, end = -5))
 
 # Rename the variables to lower case variables
-names_capslock <- names(combined_sod[[1]])
-names_low <- str_to_lower(names_capslock)
-combined_sod <-  LOWERCASEVAR(combined_sod, names_low)
+names_upper <- names(combined_sod[[1]])
+names_lower <- str_to_lower(names_upper)
+combined_sod <-  LOWERCASEVAR(combined_sod, names_lower)
 
 # Combine all data frames within the list to one large data frame
 combined_sod <-  bind_rows(combined_sod)
 
+# Change object from data.frame to data.tabel for efficieny reasons
+setDT(combined_sod)
+
 # Label all variables with their original variables in upper case
 for (i in seq_along(combined_sod)) {
-  attr(combined_sod[[i]], "label") <- names_capslock[i]
+  attr(combined_sod[[i]], "label") <- names_upper[i]
 }
 
-# Save Combined (raw) SOD dataset
-SAVE(dfx = combined_sod, namex = "combined_sod")
+save <- combined_sod
+combined_sod <- save
+
+# Select the relevant variables of interest
+combined_sod <- combined_sod[, .(year, stcntybr, uninumbr, depsumbr, insured, specdesc, sims_acquired_date, msabr, bkmo)]
+
+# Clean variables from all unusal characters
+combined_sod <- combined_sod[, depsumbr := gsub(",", "", depsumbr)]
+combined_sod <- combined_sod[, sims_acquired_date := ifelse(nchar(sims_acquired_date) > 1,
+                                                            substr(sims_acquired_date, nchar(sims_acquired_date) - 3, nchar(sims_acquired_date)), 
+                                                            sims_acquired_date)]
+
+# Format the relevant variables
+columns_to_convert <- c("year", "depsumbr", "msabr", "bkmo")
+combined_sod <- combined_sod[, (columns_to_convert) := lapply(.SD, as.integer), .SDcols = columns_to_convert]
+
+# Cleaning specdesc from special charaters
+combined_sod <- combined_sod[, specdesc := str_to_lower(specdesc)]
+combined_sod <- combined_sod[, specdesc := gsub(" ", "_", specdesc)]
+combined_sod <- combined_sod[, specdesc := gsub(">", "greater", specdesc)]
+combined_sod <- combined_sod[, specdesc := gsub("<", "lower", specdesc)]
+combined_sod <- combined_sod[, specdesc := gsub("-", "_", specdesc)]
+combined_sod <- combined_sod[, specdesc := gsub("\\$", "", specdesc)]
+
+# Create two different datasets
+# 1. Only Commerical banks
+sod_banks <- combined_sod[insured == "CB"]
+sod_banks <- sod_banks[, insured := NULL]
+
+# 2. All kind of financial instiutions
+sod_all <- combined_sod
+
+# Save Combined (raw) SOD dataset# SNULLave Combined (raw) SOD dataset
+SAVE(dfx = sod_banks, namex = "sod_banks")
+SAVE(dfc = sod_all, namex =  "sod_all")
 
 # Clear Global Environment
-rm(list = "combined_sod")
+rm(list = c("combined_sod", "sod_banks", "sod_all"))
 
 # Clear unused memory
 gc()
