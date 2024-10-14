@@ -35,7 +35,7 @@ fips_data <- read_xls(paste0(A, "c_census/", "US_FIPS_Codes.xls"), skip = 1)
 setDT(fips_data)
 colnames(fips_data) <-  c("state_name", "county_name", "state_code", "county_code")
 fips_data <- fips_data[, fips := paste0(state_code, county_code)]
-
+SAVE(dfx = fips_data, namex = "fips_data")
 
 ## 
 fips_census <- fread(paste0(A, "c_census/", "fips.txt"), colClasses = "character", skip = 75)
@@ -103,16 +103,10 @@ for (i in seq_along(combined_sod)) {
   attr(combined_sod[[i]], "label") <- names_upper[i]
 }
 
-save <- combined_sod
-combined_sod <- save
-
-
 # Select the relevant variables of interest
-combined_sod <- combined_sod[, .(year, stcntybr, uninumbr, depsumbr, insured, specdesc, sims_acquired_date, msabr, bkmo, stnumbr, cntynumb)]
-
-
-combined_sod <- combined_sod
-uniqueN(combined_sod$fips)
+combined_sod <- combined_sod[, .(year, stcntybr, uninumbr, depsumbr, insured, 
+                                 specdesc, sims_acquired_date, msabr, bkmo,
+                                 stnumbr, cntynumb)]
 
 # Clean variables from all unusal characters
 combined_sod <- combined_sod[, depsumbr := gsub(",", "", depsumbr)]
@@ -144,16 +138,14 @@ combined_sod <- combined_sod[, fips := paste0(stnumbr, cntynumb)]
 
 # Excluding: Puerto Rico (72), US Virgin Islands (78), American Samoa (60), 
 # Northern Marian Islands (69), U.S. Minor Outlying Islands (74), Guam (66)
-uniqueN(combined_sod$stcntybr)
 combined_sod <- combined_sod[!stnumbr %in% c("72", "66", "60", "69", "74", "78")]
 
 # Validate the quality of the fips code by comparing the available fips code in
 # the SOD with a list of all fips code in the US from the US Census Bureau (MDR Education)
+load(paste0(TEMP, "/", "fips_data.rda"))
 notvalid <- setdiff(fips_data$fips, combined_sod$fips)
-combined_sod <-  combined_sod[!(fips %in% notvalid)]
+combined_sod <- combined_sod[!(fips %in% notvalid)]
 
-union(setdiff(combined_sod$fips, fips_data$fips), setdiff(fips_data$fips, combined_sod$fips))
-setdiff(combined_sod$fips, fips_data$fips)
 # Create two different datasets
 # 1. Only Commerical banks
 sod_banks <- combined_sod[insured == "CB"]
@@ -162,20 +154,21 @@ sod_banks <- sod_banks[, insured := NULL]
 # 2. All kind of financial instiutions
 sod_all <- combined_sod
 
-t <- unique(combined_sod$fips)
-write.csv(t, "fips.csv", row.names = FALSE)
+
+
 # Save Combined (raw) SOD dataset# SNULLave Combined (raw) SOD dataset
 SAVE(dfx = sod_banks, namex = "banks_sod")
 SAVE(dfx = sod_all, namex =  "all_sod")
 
 
 # Clear Global Environment
-rm(list = c("combined_sod", "sod_banks", "sod_all"))
+rm(list = c("combined_sod", "sod_banks", "sod_all", "fips_data"))
 
 # Clear unused memory
 gc()
 
 LOAD(paste0(TEMP, "/combined_sod"))
+
 ### 2. Import: Mortgages Data  -------------------------------------------------
     
 df_new_mortgage <- read.csv(paste0(A, "mortgage_data/", "nmdb-new-mortgage-statistics-state-annual.csv"))
