@@ -30,6 +30,15 @@ gc()
 ## Importing Summary of Deposits (by FDIC) from Wang et al. (2022) -------------
 df_sod <- read_dta(paste0(A,"wang_22_data/", "FDIC_SOD.dta"))
 
+# Import US FIPS County Codes
+fips_data <- read_xls(paste0(A, "c_census/", "US_FIPS_Codes.xls"), skip = 1)
+setDT(fips_data)
+colnames(fips_data) <-  c("state_name", "county_name", "state_code", "county_code")
+fips_data <- fips_data[, fips := paste0(state_code, county_code)]
+
+
+## 
+fips_census <- fread(paste0(A, "c_census/", "fips.txt"), colClasses = "character", skip = 75)
 ### 1. Importing Summary of Deposits (by FDIC) for the years 2018 to 2024 ------
 ## 1.1 Import Files ----
 files_sod <- list.files(paste0(A, "sod_direct/"))
@@ -80,6 +89,9 @@ names_upper <- names(combined_sod[[1]])
 names_lower <- str_to_lower(names_upper)
 combined_sod <-  LOWERCASEVAR(combined_sod, names_lower)
 
+# save <- combined_sod
+# combined_sod <- save
+
 # Combine all data frames within the list to one large data frame
 combined_sod <-  bind_rows(combined_sod)
 
@@ -94,8 +106,13 @@ for (i in seq_along(combined_sod)) {
 save <- combined_sod
 combined_sod <- save
 
+
 # Select the relevant variables of interest
-combined_sod <- combined_sod[, .(year, stcntybr, uninumbr, depsumbr, insured, specdesc, sims_acquired_date, msabr, bkmo)]
+combined_sod <- combined_sod[, .(year, stcntybr, uninumbr, depsumbr, insured, specdesc, sims_acquired_date, msabr, bkmo, stnumbr, cntynumb)]
+
+
+combined_sod <- combined_sod
+uniqueN(combined_sod$fips)
 
 # Clean variables from all unusal characters
 combined_sod <- combined_sod[, depsumbr := gsub(",", "", depsumbr)]
@@ -115,6 +132,28 @@ combined_sod <- combined_sod[, specdesc := gsub("<", "lower", specdesc)]
 combined_sod <- combined_sod[, specdesc := gsub("-", "_", specdesc)]
 combined_sod <- combined_sod[, specdesc := gsub("\\$", "", specdesc)]
 
+# Restrict the data frmae to the relevant year
+combined_sod <- combined_sod[between(year, 2000, 2020)]
+
+# Create fips code
+combined_sod <- combined_sod[stnumbr != "" & cntynumb != ""]
+combined_sod <- combined_sod[, stnumbr := ifelse(nchar(stnumbr) == 1, paste0("0", stnumbr), stnumbr)]
+combined_sod <- combined_sod[, cntynumb := ifelse(nchar(cntynumb) == 2, paste0("0", cntynumb), cntynumb)]
+combined_sod <- combined_sod[, cntynumb := ifelse(nchar(cntynumb) == 1, paste0("00", cntynumb), cntynumb)]
+combined_sod <- combined_sod[, fips := paste0(stnumbr, cntynumb)]
+
+# Excluding: Puerto Rico (72), US Virgin Islands (78), American Samoa (60), 
+# Northern Marian Islands (69), U.S. Minor Outlying Islands (74), Guam (66)
+uniqueN(combined_sod$stcntybr)
+combined_sod <- combined_sod[!stnumbr %in% c("72", "66", "60", "69", "74", "78")]
+
+# Validate the quality of the fips code by comparing the available fips code in
+# the SOD with a list of all fips code in the US from the US Census Bureau (MDR Education)
+notvalid <- setdiff(fips_data$fips, combined_sod$fips)
+combined_sod <-  combined_sod[!(fips %in% notvalid)]
+
+union(setdiff(combined_sod$fips, fips_data$fips), setdiff(fips_data$fips, combined_sod$fips))
+setdiff(combined_sod$fips, fips_data$fips)
 # Create two different datasets
 # 1. Only Commerical banks
 sod_banks <- combined_sod[insured == "CB"]
@@ -123,9 +162,12 @@ sod_banks <- sod_banks[, insured := NULL]
 # 2. All kind of financial instiutions
 sod_all <- combined_sod
 
+t <- unique(combined_sod$fips)
+write.csv(t, "fips.csv", row.names = FALSE)
 # Save Combined (raw) SOD dataset# SNULLave Combined (raw) SOD dataset
-SAVE(dfx = sod_banks, namex = "sod_banks")
-SAVE(dfc = sod_all, namex =  "sod_all")
+SAVE(dfx = sod_banks, namex = "banks_sod")
+SAVE(dfx = sod_all, namex =  "all_sod")
+
 
 # Clear Global Environment
 rm(list = c("combined_sod", "sod_banks", "sod_all"))
