@@ -1,3 +1,10 @@
+# TARGET: 
+# INDATA: 
+# OUTDATA/ OUTPUT:
+
+################################################################################################################+
+# INTRO	script-specific ####
+
 #clear gobal environment of all but uppercase objects (globals, myfunctions, scalars)
 CLEARCOND()
 
@@ -12,7 +19,8 @@ MAINNAME <- substr(MAINNAME,1,nchar(MAINNAME)-2) #cut off .R
 #release unused memory 
 gc()
 
-########################
+################################################################################################################+
+# MAIN PART ####
 
 # 1. Basic data cleaning 
 
