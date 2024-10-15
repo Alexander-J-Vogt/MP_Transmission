@@ -22,15 +22,17 @@ gc()
 ################################################################################################################+
 # MAIN PART ####
 
-# Import US FIPS County Codes
+## 1. Import US FIPS County Codes ----------------------------------------------
+
+# This data is used to verify fips code in the Summary of Deposits
+# SOD contians fips code that do not exist.
 fips_data <- read_xls(paste0(A, "c_census/", "US_FIPS_Codes.xls"), skip = 1)
 setDT(fips_data)
 colnames(fips_data) <-  c("state_name", "county_name", "state_code", "county_code")
+
+# Creates fips code by combining state and county code
 fips_data <- fips_data[, fips := paste0(state_code, county_code)]
 SAVE(dfx = fips_data, namex = "fips_data")
-
-## 
-fips_census <- fread(paste0(A, "c_census/", "fips.txt"), colClasses = "character", skip = 75)
 
 ### 1. Importing Summary of Deposits (by FDIC) for the years 2018 to 2024 ------
 ## 1.1 Import Files ----
