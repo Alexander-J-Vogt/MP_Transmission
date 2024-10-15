@@ -191,31 +191,6 @@ rm(list = c("combined_sod", "sod_banks", "sod_all", "fips_data"))
 # Clear unused memory
 gc()
 
-### 2. Import: Mortgages Data  -------------------------------------------------
-    
-df_new_mortgage <- read.csv(paste0(A, "mortgage_data/", "nmdb-new-mortgage-statistics-state-annual.csv"))
-# df_mortgage_performance <- read.csv(paste0(A, "mortgage_data/", "nmdb-mortgage-performance-statistics-states-quarterly.csv"))
-# df_new_mortgage <- read.csv(paste0(A, "mortgage_data/", "nmdb-new-mortgage-statistics-national-census-areas-annual.csv"))
-
-# Start to 
-column_vector <- colnames(df_new_mortgage)
-column_vector <- str_to_lower(column_vector)
-colnames(df_new_mortgage) <- column_vector
-
-# Clean name variables
-df_new_mortgage <- LOWERUNDERSCORE(data = df_new_mortgage, varname = "geoname")
-
-LOWERUNDERSCORE <-  function(data, varname) {
-  data[[varname]] <- gsub(" ", "_", data[[varname]])
-  data[[varname]] <- str_to_lower(data[[varname]])
-  return(data)
-}
-df_new_mortgage <- LOWERUNDERSCORE(data = df_new_mortgage, varname = "market")
-df_new_mortgage <- gsub("[()]", "", df_new_mortgage)
-df_new_mortgage <- df_new_mortgage |>
-  rename(nr_orginations = value1,
-         value_originations = value2)
-
 ### 3. Import: U.S.Population Data ---------------------------------------------
 
 # Import U.S.Population for the years 2010 to 2020
