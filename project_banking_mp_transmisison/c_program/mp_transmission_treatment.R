@@ -77,8 +77,11 @@ sod <- sod[, d_hhi_10000 := ifelse(sod$fips %in% cnty_10000$fips, 1, 0)]
 sod_hhi <- sod[, .(mean_hhi = mean(hhi)), by = fips]
 sod_hhi <- sod_hhi[, d_hhi_10000 := ifelse(sod_hhi$fips %in% cnty_10000$fips, 1, 0)]
 
+# Create a dataset equal to sod_hhi but with counties with HHI = 10000
 sod_hhi_rest <- sod_hhi[d_hhi_10000 == 0]
-# sod <- sod[, mean_hhi := mean(hhi), by = fips]
+
+# Calculate the mean HHI for each county in the main SOD dataset
+sod <- sod[, mean_hhi := mean(hhi), by = fips]
 
 # 4. Create Treatment/Control Dummy Variables ----------------------------------
 
