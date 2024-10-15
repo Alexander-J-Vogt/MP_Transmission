@@ -27,12 +27,29 @@ sod <- LOAD(dfinput = "banks_sod", dfextension = ".rda")
 setDT(sod)
 
 # Select the relevant variables for creating HHI by county-level
-sod <- sod[, .(year, fips, depsumbr)]
-
+sod <- sod[, .(year, fips, depsumbr, rssdid)]
+setorder(sod, year, fips, rssdid)
 
 # Create HHI by county
+# Calculate the sum of deposit by year, financial instiution and fips
+sod <- sod[, bank_cnty_dep := sum(depsumbr), by = .(rssdid, fips, year)]
+
 # Calculate the sum of deposits by year and fips-code
-sod <- sod[, cnty_tot_dep := sum(depsumbr), by =. (fips, year)]
+sod <- sod[, cnty_tot_dep := sum(depsumbr), by = .(fips, year)]
+
+# Calculate the market share and sqaure the value of it
+sod <- sod[, bank_market_share := bank_cnty_dep / cnty_tot_dep * 100]
+sod <- sod[, bank_market_share_sq := bank_market_share^2]
+
+# Drop all duplicates
+sod <- unique(sod, by = c("year", "fips", "rssdid"))
+# test <- test[, check := sum(bank_market_share), by = .(fips, year)]
+# duplicate_rows <- sod[duplicated(sod, by = c("year", "fips", "rssdid"))]
+
+# Calculate the HHI
+sod <- sod[, .(hhi = sum(bank_market_share_sq)), by = .(fips, year)]
+
+# Follow the strateg
 
 # Calculate the market-share of one 
 # Create turnover rate of branches for each year (sims_aquired_date)
