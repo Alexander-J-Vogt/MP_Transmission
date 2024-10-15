@@ -146,12 +146,24 @@ load(paste0(TEMP, "/", "fips_data.rda"))
 notvalid <- setdiff(fips_data$fips, combined_sod$fips)
 combined_sod <- combined_sod[!(fips %in% notvalid)]
 
+# Filter for all counties, which are observed over all periods between 2000 and 2020
+check_obs <- combined_sod[, .(fips, year, rssdid)]
+check_obs <- check_obs |> distinct(fips, year, rssdid)
+check_obs <- check_obs |> distinct(fips, year)
+check_obs <- suppressWarnings(check_obs[, ones := 1])
+duplicated_rows <- any(duplicated(check_obs[, .(fips, year)]))
+check_obs[!duplicated(check_obs, by = c("year", "fips"))]
+county_matrix <- dcast(check_obs, fips ~ year, value.var = "ones", fill = 0)
+setDT(county_matrix)
+counties_full_obs <- county_matrix[rowSums(county_matrix[ , 2:ncol(county_matrix), with = FALSE] > 0) == 21]
+combined_sod <- combined_sod[fips %in% counties_full_obs$fips]
+
 # Create two different datasets
-# 1. Only Commerical banks
+# 1. Only Commercial banks
 sod_banks <- combined_sod[insured == "CB"]
 sod_banks <- sod_banks[, insured := NULL]
 
-# 2. All kind of financial instiutions
+# 2. All kind of financial institutions
 sod_all <- combined_sod
 
 
