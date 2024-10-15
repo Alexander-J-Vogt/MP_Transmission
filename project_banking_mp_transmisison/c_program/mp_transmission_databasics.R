@@ -268,28 +268,6 @@ SAVE(dfx = df_pop_us_complete, namex = "pop_us")
 # remove all created objects
 rm(list = ls(pattern = "df_pop_us"))
 
-
-## Test ----
-
-setwd(paste0(A, "county_level_data/"))
-county_level <- fromJSON("counties.json")
-
-# Read the JSON file as a raw text
-json_raw <- readLines("counties.json", warn = FALSE)
-
-# Replace NaN with null (or another placeholder)
-json_cleaned <- gsub("NaN", "null", json_raw)
-
-json_cleaned_string <- paste(json_cleaned, collapse = "\n")
-
-data <- fromJSON(json_cleaned_string)
-json_raw <- readLines("path_to_your_file.json", warn = FALSE)
-if (!validate(paste(json_raw, collapse = "\n"))) {
-  cat("The JSON file is not valid!\n")
-} else {
-  data <- fromJSON(paste(json_raw, collapse = "\n"))
-}
-
 ### Home Mortgage Disclosure Act (HMDA) ---- 
 
 ## HMDA Data for the years 2000 to 2006 ----
