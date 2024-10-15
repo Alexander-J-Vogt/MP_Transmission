@@ -1,4 +1,4 @@
-# TARGET: 
+# TARGET: Reading 
 # INDATA: 
 # OUTDATA/ OUTPUT:
 
@@ -21,14 +21,6 @@ gc()
 
 ################################################################################################################+
 # MAIN PART ####
-
-### Importing Call Report Data from Wang et al. (2022) -------------------------
-# Call Rreport: Information on bank-level data
-# df_callreport <- read_dta(paste0(A,"wang_22_data/", "callreport_ffiec_merged.dta"))
-
-### Importing Summary of Deposits (SOD) (by FDIC) ------------------------------
-## Importing Summary of Deposits (by FDIC) from Wang et al. (2022) -------------
-df_sod <- read_dta(paste0(A,"wang_22_data/", "FDIC_SOD.dta"))
 
 # Import US FIPS County Codes
 fips_data <- read_xls(paste0(A, "c_census/", "US_FIPS_Codes.xls"), skip = 1)
