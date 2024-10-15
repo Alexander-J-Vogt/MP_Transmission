@@ -39,6 +39,7 @@ SAVE(dfx = fips_data, namex = "fips_data")
 
 ## 
 fips_census <- fread(paste0(A, "c_census/", "fips.txt"), colClasses = "character", skip = 75)
+
 ### 1. Importing Summary of Deposits (by FDIC) for the years 2018 to 2024 ------
 ## 1.1 Import Files ----
 files_sod <- list.files(paste0(A, "sod_direct/"))
