@@ -39,6 +39,7 @@ sod <- sod[, cnty_tot_dep := sum(depsumbr), by = .(fips, year)]
 
 # Calculate the market share and sqaure the value of it
 sod <- sod[, bank_market_share := bank_cnty_dep / cnty_tot_dep * 100]
+sod <- sod[, bank_market_share := ifelse(is.nan(bank_market_share), 0, bank_market_share)]
 sod <- sod[, bank_market_share_sq := bank_market_share^2]
 
 # Drop all duplicates
@@ -48,6 +49,8 @@ sod <- unique(sod, by = c("year", "fips", "rssdid"))
 
 # Calculate the HHI
 sod <- sod[, .(hhi = sum(bank_market_share_sq)), by = .(fips, year)]
+
+sod_hhi <- sod[, .(mean_hhi = mean(hhi)), by = fips]
 
 # Follow the strateg
 
