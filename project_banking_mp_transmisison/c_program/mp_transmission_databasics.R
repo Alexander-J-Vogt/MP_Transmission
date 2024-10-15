@@ -22,7 +22,9 @@ gc()
 ################################################################################################################+
 # MAIN PART ####
 
-## 1. Import US FIPS County Codes ----------------------------------------------
+# 1. Import US FIPS County Codes ===============================================
+# FIPS Code is the unique identifier of a county and consist of a 5-digit number.
+# The first two digits is the state code, while the last three digist are county-code.
 
 # This data is used to verify fips code in the Summary of Deposits
 # SOD contians fips code that do not exist.
@@ -34,22 +36,28 @@ colnames(fips_data) <-  c("state_name", "county_name", "state_code", "county_cod
 fips_data <- fips_data[, fips := paste0(state_code, county_code)]
 SAVE(dfx = fips_data, namex = "fips_data")
 
-### 1. Importing Summary of Deposits (by FDIC) for the years 2018 to 2024 ------
-## 1.1 Import Files ----
-files_sod <- list.files(paste0(A, "sod_direct/"))
+rm(fips_data)
+
+# 2. Importing Summary of Deposits (by FDIC) for the years 2018 to 2024 ========
+## 2.1 Import Files ------------------------------------------------------------
+
+# list all raw sod files in h_sod_direct
+files_sod <- list.files(paste0(A, "h_sod_direct/"))
 files_sod <- files_sod[grepl("\\csv$",files_sod)]
 
-# Loop for importing all sod datasets from 2018 - 
+# Loop for importing all sod datasets from 1994 to 2024 
 for (i in files_sod) {
   print(paste0("Iteration Status: ", i))
-  file <- suppressMessages(read_csv(paste0(A, "sod_direct/", i), , col_types = cols(.default = "c")))
+  file <- suppressMessages(read_csv(paste0(A, "h_sod_direct/", i), , col_types = cols(.default = "c")))
   year <- str_sub(i, start = 5, end = 8)
   SAVE(dfx = file, namex = paste0("sod_", year))
   rm(file, year)
 }
 
+## 2.2 Append all raw SOD files ------------------------------------------------
+
 # Loop over all SOD datasets in order to create one large data frame for 
-# the years 2018 to 2014
+# the years 1994 to 2024
 
 # Create vector with all names of SOD datasets
 sod_temp <- list.files(paste0(TEMP))
@@ -58,7 +66,7 @@ sod_temp <- sod_temp[str_detect(sod_temp, "^sod")]
 # Create empty list in which all SOD datasets will be saved
 combined_sod <- list()
 
-# Save all data frames within alist
+# Save all datasets within a list object
 for (file in sod_temp) {
   # Read the .rda file
   load(paste0(TEMP, "/", file))
@@ -84,9 +92,6 @@ names_upper <- names(combined_sod[[1]])
 names_lower <- str_to_lower(names_upper)
 combined_sod <-  LOWERCASEVAR(combined_sod, names_lower)
 
-# save <- combined_sod
-# combined_sod <- save
-
 # Combine all data frames within the list to one large data frame
 combined_sod <-  bind_rows(combined_sod)
 
@@ -98,22 +103,26 @@ for (i in seq_along(combined_sod)) {
   attr(combined_sod[[i]], "label") <- names_upper[i]
 }
 
-# Select the relevant variables of interest
+## 2.3 Basic Data Cleaning -----------------------------------------------------
+
+# Select the variables of interest
 combined_sod <- combined_sod[, .(year, stcntybr, uninumbr, depsumbr, insured, 
                                  specdesc, sims_acquired_date, msabr, bkmo,
                                  stnumbr, cntynumb, rssdid)]
 
-# Clean variables from all unusal characters
+# Clean variables depsumbr and sims_aquired_date from all special characters
 combined_sod <- combined_sod[, depsumbr := gsub(",", "", depsumbr)]
-combined_sod <- combined_sod[, sims_acquired_date := ifelse(nchar(sims_acquired_date) > 1,
-                                                            substr(sims_acquired_date, nchar(sims_acquired_date) - 3, nchar(sims_acquired_date)), 
-                                                            sims_acquired_date)]
+combined_sod <- combined_sod[, sims_acquired_date := 
+                               ifelse(nchar(sims_acquired_date) > 1,
+                                      substr(sims_acquired_date, nchar(sims_acquired_date) - 3, 
+                                             nchar(sims_acquired_date)), 
+                                      sims_acquired_date)]
 
-# Format the relevant variables
+# Format the relevant variables to integers
 columns_to_convert <- c("year", "depsumbr", "msabr", "bkmo")
 combined_sod <- combined_sod[, (columns_to_convert) := lapply(.SD, as.integer), .SDcols = columns_to_convert]
 
-# Cleaning specdesc from special charaters
+# Cleaning the variable specdesc from special characters
 combined_sod <- combined_sod[, specdesc := str_to_lower(specdesc)]
 combined_sod <- combined_sod[, specdesc := gsub(" ", "_", specdesc)]
 combined_sod <- combined_sod[, specdesc := gsub(">", "greater", specdesc)]
@@ -121,48 +130,58 @@ combined_sod <- combined_sod[, specdesc := gsub("<", "lower", specdesc)]
 combined_sod <- combined_sod[, specdesc := gsub("-", "_", specdesc)]
 combined_sod <- combined_sod[, specdesc := gsub("\\$", "", specdesc)]
 
-# Restrict the data frmae to the relevant year
+# Restrict the dataset the year 2000 to 2020
 combined_sod <- combined_sod[between(year, 2000, 2020)]
 
-# Create fips code
+# Create fips-code by combining the state and county code
 combined_sod <- combined_sod[stnumbr != "" & cntynumb != ""]
 combined_sod <- combined_sod[, stnumbr := ifelse(nchar(stnumbr) == 1, paste0("0", stnumbr), stnumbr)]
 combined_sod <- combined_sod[, cntynumb := ifelse(nchar(cntynumb) == 2, paste0("0", cntynumb), cntynumb)]
 combined_sod <- combined_sod[, cntynumb := ifelse(nchar(cntynumb) == 1, paste0("00", cntynumb), cntynumb)]
 combined_sod <- combined_sod[, fips := paste0(stnumbr, cntynumb)]
 
-# Excluding: Puerto Rico (72), US Virgin Islands (78), American Samoa (60), 
+# Excluding the following US territories as they are not relevant for the analysis: 
+# Puerto Rico (72), US Virgin Islands (78), American Samoa (60), 
 # Northern Marian Islands (69), U.S. Minor Outlying Islands (74), Guam (66)
 combined_sod <- combined_sod[!stnumbr %in% c("72", "66", "60", "69", "74", "78")]
 
 # Validate the quality of the fips code by comparing the available fips code in
 # the SOD with a list of all fips code in the US from the US Census Bureau (MDR Education)
+# -> The SOD contains fips-codes that are not existing. The observations with the invalid fips-codes are excluded. 
 load(paste0(TEMP, "/", "fips_data.rda"))
 notvalid <- setdiff(fips_data$fips, combined_sod$fips)
 combined_sod <- combined_sod[!(fips %in% notvalid)]
 
-# Filter for all counties, which are observed over all periods between 2000 and 2020
+# Only fips-codes, which are observed over the period of 2000 to 2020 are included
+# in the dataset.
+# Collapse data to county-year level
 check_obs <- combined_sod[, .(fips, year, rssdid)]
 check_obs <- check_obs |> distinct(fips, year, rssdid)
 check_obs <- check_obs |> distinct(fips, year)
+
+# Irrelevant warning that is supresed. Warning is related to the data.table package.
 check_obs <- suppressWarnings(check_obs[, ones := 1])
-duplicated_rows <- any(duplicated(check_obs[, .(fips, year)]))
-check_obs[!duplicated(check_obs, by = c("year", "fips"))]
+
+# Check if rows have duplicates 
+# duplicated_rows <- any(duplicated(check_obs[, .(fips, year)]))
+# check_obs[!duplicated(check_obs, by = c("year", "fips"))]
+# Determine the counties that are observed over all periods and filter for those counties
 county_matrix <- dcast(check_obs, fips ~ year, value.var = "ones", fill = 0)
 setDT(county_matrix)
 counties_full_obs <- county_matrix[rowSums(county_matrix[ , 2:ncol(county_matrix), with = FALSE] > 0) == 21]
 combined_sod <- combined_sod[fips %in% counties_full_obs$fips]
 
+## 2.4 Save datasets  ----------------------------------------------------------
+
 # Create two different datasets
-# 1. Only Commercial banks
+# i. Only Commercial banks
 sod_banks <- combined_sod[insured == "CB"]
 sod_banks <- sod_banks[, insured := NULL]
 
-# 2. All kind of financial institutions
+# ii. All available financial institutions
 sod_all <- combined_sod
 
-
-# Save Combined (raw) SOD dataset# SNULLave Combined (raw) SOD dataset
+# Save Combined (raw) SOD dataset
 SAVE(dfx = sod_banks, namex = "banks_sod")
 SAVE(dfx = sod_all, namex =  "all_sod")
 
@@ -171,8 +190,6 @@ rm(list = c("combined_sod", "sod_banks", "sod_all", "fips_data"))
 
 # Clear unused memory
 gc()
-
-LOAD(paste0(TEMP, "/combined_sod"))
 
 ### 2. Import: Mortgages Data  -------------------------------------------------
     
