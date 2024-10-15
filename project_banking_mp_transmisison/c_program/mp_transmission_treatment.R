@@ -89,7 +89,7 @@ sod <- sod[, mean_hhi := mean(hhi), by = fips]
 # dataset "sod" with the help of sod_hhi
 # all: Includes counties with hhi == 10000
 # rest: Exldues counties with hhi == 10000
-# 1. Threshold: Median
+# a) Threshold: Median
 # All Counties
 median_hhi_all <- median(sod_hhi$mean_hhi)
 sod <- sod[, d_median_all := ifelse(fips %in% sod_hhi[mean_hhi > median_hhi_all, fips], 1, 0)]
@@ -98,7 +98,7 @@ sod <- sod[, d_median_all := ifelse(fips %in% sod_hhi[mean_hhi > median_hhi_all,
 median_hhi_rest <- median(sod_hhi_rest$mean_hhi)
 sod <- sod[, d_median_rest := ifelse(fips %in% sod_hhi_rest[mean_hhi > median_hhi_rest], 1, 0)]
 
-# 2. Threshold: Mean
+# b) Threshold: Mean
 # All Countnties
 mean_hhi_all <- mean(sod_hhi$mean_hhi)
 sod <- sod[, d_mean_all := ifelse(fips %in% sod_hhi[mean_hhi > mean_hhi_all, fips], 1, 0)]
@@ -107,15 +107,23 @@ sod <- sod[, d_mean_all := ifelse(fips %in% sod_hhi[mean_hhi > mean_hhi_all, fip
 mean_hhi_rest <- mean(sod_hhi_rest$mean_hhi)
 sod <- sod[, d_mean_rest := ifelse(fips %in% sod_hhi_rest[mean_hhi > mean_hhi_rest], 1, 0)]
 
-# 3. Threshold: Market Defintion of a highly-concentrated market (HHI > 2500)
+# c) Threshold: Market Defintion of a highly-concentrated market (HHI > 2500)
 # All counties
 sod <- sod[, d_marketdef_all := ifelse(mean_hhi > 2500, 1, 0)]
 
 # Exclude counties with HHI = 10000 over all periods
 sod <-  sod[, d_marketdef_rest := ifelse((mean_hhi > 2500) & (d_hhi_10000 == 0), 1, 0)]
 
+# d) Theshold: 70 percentile 
+q70_hhi_all <- quantile(sod_hhi$mean_hhi, probs = 0.70)
+sod <- sod[, d_qu70_all := ifelse(fips %in% sod_hhi[mean_hhi > q70_hhi_all, fips], 1, 0)]
 
+# Exclude Counties with HHI = 10000 over all periods
+q70_hhi_rest <- quantile(sod_hhi$mean_hhi, probs = 0.70)
+sod <- sod[, d_q79_rest := ifelse(fips %in% sod_hhi_rest[mean_hhi > q70_hhi_rest], 1, 0)]
 
+# Save dataset
+SAVE(dfx = sod, name = MAINNAME)
 
 
 # Calculate the mean of hhi over time in order to identify treatment and control group
