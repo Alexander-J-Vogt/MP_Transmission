@@ -516,7 +516,7 @@ pop_list <- lapply(pop_list, function(data) {
   data <- FIPSCREATOR(data, state_col = "STATE", county_col = "COUNTY")
   
   # Select relevant variables
-  data <- EXTRACTPOP(data = data, county_col = "fips")
+  data <- EXTRACTVAR(data = data, state_col = "STATE", county_col = "fips", indicator = "POPESTIMATE")
   
   # Reshape into long format
   data <- RESHAPEPOP(data = data)
@@ -530,6 +530,10 @@ pop_list <- lapply(pop_list, function(data) {
 # Create population dataset over all periods for county and states
 pop_data <- bind_rows(pop_list)
 setDT(pop_data)
+
+# Format as integer
+pop_data <- pop_data[, year := as.integer(year)]
+pop_data <- pop_data[, population := as.integer(population)]
 
 # Extract all state observations
 pop_state_data <- pop_data[
@@ -551,7 +555,88 @@ setnames(pop_state_data, old = c("population"), new = c("state_pop"))
 SAVE(dfx = pop_cnty_data, namex = "pop_cnty")
 SAVE(dfx = pop_state_data, namex = "pop_state")
 
+# 6. Import Unemployment Data ==================================================
+
+# Import unemployment data on county level from the economic research service
+unemp_data <- read_xlsx(paste0(A, "e_economic_research_service/", "Unemployment.xlsx"), skip = 4, col_types = "text")
+setDT(unemp_data)
+
+# Extract Unemployment Rates for all counties
+unemp_data <- EXTRACTVAR(data = unemp_data, state_col = "State", county_col = "FIPS_Code", indicator = "Unemployment_rate")
+
+# Standardize variable names
+colnames(unemp_data) <- str_to_lower(names(unemp_data))
+setnames(unemp_data, old = c("fips_code"), new = c("fips"))
+
+# Shift data from wide to long format
+unemp_data <- melt(
+  unemp_data,
+  measure.vars = patterns("unemployment_rate_"),
+  variable.name = "year",
+  value.name = "ur"
+)
+
+# Clean the year variable
+unemp_data <- unemp_data[, year := sub("unemployment_rate_", "", year)]
+
+# Delete observation for states and US Totals
+unemp_data <- unemp_data[fips != "00000"]
+unemp_data <- unemp_data[
+  substr(get("fips"), nchar(get("fips")) - 2, nchar(get("fips"))) != "000", 
+  .(fips, state, year, ur)
+]
+
+# format variables
+unemp_data <- unemp_data[, year := as.integer(year)]
+unemp_data <- unemp_data[, ur := round(as.double(ur), 2)]
+
+# Save
+SAVE(dfx = unemp_data, namex = "ur_cnty")
 
 
+# 7. Import of Average Earning per county ======================================
+
+# Import data on average earnings per county from the Quarterly Workforce Indicator
+earnings_data <- read_csv(paste0(A, "g_qwi/", "qwi_e14db0de913c427aa12de971a73eb389.csv"), col_types = cols(.default = "c"))
+setDT(earnings_data)
+
+# Select relevant variables
+earnings_data <- earnings_data[, c("geography", "year", "quarter", "EarnBeg", "Emp")]
+
+# rename variables
+setnames(earnings_data, old = names(earnings_data), new = c("fips", "year", "quarter", "avg_monthly_earn", "tot_emp"))
+
+# Filter for only county observation and excluding average earnings for the US
+# and state totals
+earnings_data <- earnings_data[nchar(fips) == 5]
+
+# Extract state code and remove Puerto Rico from the dataset
+earnings_data <- earnings_data[, state := substr(fips, 1, 2)]
+earnings_data <- earnings_data[!(state %in% c("72", "66", "60", "69", "74", "78"))]
+
+# earnings_data <- earnings_data[, mean_earnings := base::mean(avg_monthly_earn), by = .(fips, year)]
+# earnings_data <- earnings_data[, quarter := as.integer(quarter)]
+# earnings_data <- earnings_data[, quarter_date := as.Date(paste0(year, "-", (quarter - 1) * 3 + 1, "-01"), format = "%Y-%m-%d")]
+
+# Calculate the mean of the avergae monthly earning of a quarter in order to 
+# an annual measure for the average monthly earnings within a county and a year
+earnings_data <-  earnings_data[, avg_monthly_earn := as.integer(avg_monthly_earn)]
+earnings_data <-  earnings_data[, mean_earning := base::mean(avg_monthly_earn, na.rm = TRUE), by = .(fips, year)]
+
+# Calculate the mean of the total employment of a quarter in order to 
+# an annual measure for the total employment  within a county and a year
+earnings_data <-  earnings_data[, tot_emp := as.integer(tot_emp)]
+earnings_data <-  earnings_data[, mean_emp := base::mean(tot_emp, na.rm = TRUE), by = .(fips, year)]
+# test <- earnings_data[, mean_emp := zoo::na.approx(mean_emp, x = year, na.rm = TRUE), by = fips]
+
+# Collapse the data to county and year level
+earnings_data <- unique(earnings_data, by = c("fips", "year"))
+
+# Select relevant variables
+earnings_data <- earnings_data[, c("fips", "year", "mean_earning", "mean_emp")]
+earnings_data <- earnings_data[, year := as.integer(year)]
+
+# SAVE
+SAVE(dfx = earnings_data, namex = "qwi_earnings")
 
 
