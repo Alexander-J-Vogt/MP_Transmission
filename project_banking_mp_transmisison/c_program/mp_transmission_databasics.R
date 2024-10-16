@@ -535,11 +535,15 @@ setDT(pop_data)
 pop_data <- pop_data[, year := as.integer(year)]
 pop_data <- pop_data[, population := as.integer(population)]
 
+# Restrict to the necessary year
+pop_data <- pop_data[inrange(year, 2000, 2020)]
+
 # Extract all state observations
 pop_state_data <- pop_data[
   substr(get("fips"), nchar(get("fips")) - 2, nchar(get("fips"))) == "000", 
   .(fips, state, year, population)
 ]
+pop_state_data <- pop_state_data[, c("state", "year", "population")]
 
 # Extract all county population observatinons
 pop_cnty_data <- pop_data[
@@ -590,6 +594,9 @@ unemp_data <- unemp_data[
 unemp_data <- unemp_data[, year := as.integer(year)]
 unemp_data <- unemp_data[, ur := round(as.double(ur), 2)]
 
+# Select relevant variable
+unemp_data <- unemp_data[, c("fips", "year", "ur")]
+
 # Save
 SAVE(dfx = unemp_data, namex = "ur_cnty")
 
@@ -639,4 +646,6 @@ earnings_data <- earnings_data[, year := as.integer(year)]
 # SAVE
 SAVE(dfx = earnings_data, namex = "qwi_earnings")
 
-
+################################################################################
+########################## ENDE ################################################
+################################################################################
