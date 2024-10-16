@@ -504,24 +504,53 @@ setDT(pop_10)
 pop_20 <- read_csv(paste0(A, "f_us_census_bureau/", "co-est2023-alldata.csv"), col_types = cols(.default = "c"))
 setDT(pop_20)
 
-## 5.2 Data Cleaning of Popestimates of the years 2000 to 2009 -----------------
+## 5.2 Basic Data Manipulation of the Population Datasets ----------------------
 
-# Create fips code
-pop_00 <- FIPSCREATOR(pop_00, state_col = "STATE", county_col = "COUNTY")
+# Create list for the population datasets
+pop_list <- list(pop_00 = pop_00, pop_10 = pop_10, pop_20 = pop_20)
 
-# Select relevant variables
-select_columns <- grep("POPESTIMATE", names(pop_00), value = TRUE)
-select_columns <- c("fips", select_columns)
-pop_00 <- pop_00[, .SD, .SDcols = select_columns]
+# Apply the same operations to each element in the list
+pop_list <- lapply(pop_list, function(data) {
+  
+  # Create fips code
+  data <- FIPSCREATOR(data, state_col = "STATE", county_col = "COUNTY")
+  
+  # Select relevant variables
+  data <- EXTRACTPOP(data = data, county_col = "fips")
+  
+  # Reshape into long format
+  data <- RESHAPEPOP(data = data)
+  
+  # All variables to small letter
+  colnames(data) <- str_to_lower(names(data))
+  
+  return(data)
+})
 
-# Reshape into long format
-df_long <- pop_00 %>%
-  pivot_longer(
-    cols = starts_with("POPESTIMATE"),
-    names_to = "year",
-    names_prefix = "POPESTIMATE",
-    values_to = "popestimate"
-  )
+# Create population dataset over all periods for county and states
+pop_data <- bind_rows(pop_list)
+setDT(pop_data)
+
+# Extract all state observations
+pop_state_data <- pop_data[
+  substr(get("fips"), nchar(get("fips")) - 2, nchar(get("fips"))) == "000", 
+  .(fips, state, year, population)
+]
+
+# Extract all county population observatinons
+pop_cnty_data <- pop_data[
+  substr(get("fips"), nchar(get("fips")) - 2, nchar(get("fips"))) != "000", 
+  .(fips, state, year, population)
+]
+
+# Adjust names for clarification
+setnames(pop_cnty_data, old = c("population"), new = c("cnty_pop"))
+setnames(pop_state_data, old = c("population"), new = c("state_pop"))
+
+# SAVE
+SAVE(dfx = pop_cnty_data, namex = "pop_cnty")
+SAVE(dfx = pop_state_data, namex = "pop_state")
+
 
 
 
