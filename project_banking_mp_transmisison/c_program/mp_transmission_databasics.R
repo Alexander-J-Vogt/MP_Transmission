@@ -467,5 +467,25 @@ purrr::walk(2000:2017, function(i) {
   gc()
 })
 
+# 4. Federal Funds Rate ========================================================
+
+# Import raw monthly data on the Federal Funds Rate
+ffr_data <- read.csv(paste0(A, "d_fred/", "FEDFUNDS.csv"))
+setDT(ffr_data)
+
+# Rename columns
+setnames(ffr_data, old = c("date", "ffr"))
+
+# Create year variable
+ffr_data <- ffr_data[, year := as.integer(substr(date, 1, 4))]
+
+# Format date variable
+ffr_data <- ffr_data[, date := as.Date(date)]
+
+# Save Data
+SAVE(dfx = ffr_data, name = "ffr")
+
+# 5. County-Level Population ===================================================
 
 
+#
