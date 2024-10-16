@@ -14,8 +14,77 @@ gc()
 
 ########################
 
+# 1. Summary of Deposits - Control Variables ===================================
+# Create control variables based on variables available in the SOD
+
 # Load the Summary of Deposits for the period 1994 to 2020
-sod <- LOAD(dfinput = "combined_sod", dfextension = ".rda")
+sod <- LOAD(dfinput = "banks_sod", dfextension = ".rda")
+setDT(sod)
 
 # Restrict to the relevant variables
-sod <- sod[, .(year, stcntybr,  insured, specdesc, sims_acquired_date, msabr, bkmo)]
+sod <- sod[, .(year, fips, sims_acquired_date, msabr, bkmo)]
+
+# 
+# Create turnover rate of branches for each year (sims_fips# Create turnover rate of branches for each year (sims_aquired_date)
+# sod <- sod[, year := as.integer(year)]
+# sod <- sod[, sims_acquired_date := 
+#              substr(sims_acquired_date, 
+#                     nchar(sims_acquired_date) - 3, 
+#                     nchar(sims_acquired_date))
+#         ]
+# sod <- sod[, sims_acquired_date := as.integer(sims_acquired_date)]
+# 
+# sod <-  sod[, d_turnover := ifelse(year == sims_acquired_date, 1, NA)]
+# sod <-  sod[, cnty_turnover := sum(d_turnover), by = .(fips, year)]
+
+# Create dummy whether county is has the main office or not (bkmo)
+sod <-  sod[, cnty_main_office := sum(bkmo), by = .(fips, year)]
+
+# Collapse by year and fips 
+sod <- unique(sod, by = c("year", "fips"))
+
+# If a county lays in a Metropoliatian Statisistical Area or not; Areas with 
+# more than 50000 inhabitants
+sod <- sod[, d_msa := as.integer(ifelse(msabr > 0, 1, 0))]
+
+# Select relevant variables
+sod <-  sod[, c("year", "fips", "cnty_main_office", "d_msa")]
+
+# SAVE
+SAVE(dfx = sod, name = "controls_sod")
+
+# clear global environment
+rm(list = c("sod"))
+
+# 2. Creating Control Dataset ==================================================
+
+# Import Population County dataset
+pop_cnty <- LOAD(dfinput = "pop_cnty")
+
+# Import Population State dataset
+pop_state <- LOAD(dfinput = "pop_state")
+
+# Import Unemployment Rate
+ur_cny <- LOAD(dfinput = "ur_cnty")
+
+# Import Average Earnings Data
+qwi_earnings <- LOAD(dfinput = "qwi_earnings")
+
+# Import Controls from sod
+controls_sod <- LOAD(dfinput = "controls_sod")
+
+# Define as data.table
+datasets <- ls()[sapply(ls(), function(x) is.data.frame(get(x)) || inherits(get(x), "data.table"))]
+print(datasets)
+
+for (dataset in datasets) {
+  assign(dataset, setDT(get(dataset)))
+}
+
+# Comining datsets by county and year
+merged_data <- left_join(pop_cnty, controls_sod, by = c("fips", "year"))
+merged_data <- left_join(merged_data, qwi_earnings, by = c("fips", "year"))
+merged_data <- left_join(merged_data, ur_cny, by = c("fips", "year"))
+
+# SAVE
+SAVE(dfx = "controls_dataset")
