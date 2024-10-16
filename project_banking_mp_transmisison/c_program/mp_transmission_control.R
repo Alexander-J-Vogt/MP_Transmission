@@ -87,4 +87,4 @@ merged_data <- left_join(merged_data, qwi_earnings, by = c("fips", "year"))
 merged_data <- left_join(merged_data, ur_cny, by = c("fips", "year"))
 
 # SAVE
-SAVE(dfx = "controls_dataset")
+SAVE(dfx = merged_data)
