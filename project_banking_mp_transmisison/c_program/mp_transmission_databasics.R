@@ -485,7 +485,44 @@ ffr_data <- ffr_data[, date := as.Date(date)]
 # Save Data
 SAVE(dfx = ffr_data, name = "ffr")
 
+# Remove from global environment
+rm(list = c("ffr_data"))
+
 # 5. County-Level Population ===================================================
 
+## 5.1 Import Raw Datasets from U.S. Census ------------------------------------
 
-#
+# Population Estimates for the years 2000 to 2009
+pop_00 <- read_csv(paste0(A, "f_us_census_bureau/", "co-est00int-tot.csv"), col_types = cols(.default = "c"))
+setDT(pop_00)
+
+# Population Estinates for the years 2010 t0 2019
+pop_10 <- read_csv(paste0(A, "f_us_census_bureau/", "co-est2019-alldata.csv"), col_types = cols(.default = "c"))
+setDT(pop_10)
+
+# Population Estimates for the years 2020to 2023
+pop_20 <- read_csv(paste0(A, "f_us_census_bureau/", "co-est2023-alldata.csv"), col_types = cols(.default = "c"))
+setDT(pop_20)
+
+## 5.2 Data Cleaning of Popestimates of the years 2000 to 2009 -----------------
+
+# Create fips code
+pop_00 <- FIPSCREATOR(pop_00, state_col = "STATE", county_col = "COUNTY")
+
+# Select relevant variables
+select_columns <- grep("POPESTIMATE", names(pop_00), value = TRUE)
+select_columns <- c("fips", select_columns)
+pop_00 <- pop_00[, .SD, .SDcols = select_columns]
+
+# Reshape into long format
+df_long <- pop_00 %>%
+  pivot_longer(
+    cols = starts_with("POPESTIMATE"),
+    names_to = "year",
+    names_prefix = "POPESTIMATE",
+    values_to = "popestimate"
+  )
+
+
+
+
