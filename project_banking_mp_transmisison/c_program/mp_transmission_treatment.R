@@ -22,7 +22,9 @@ gc()
 ################################################################################################################+
 # MAIN PART ####
 
-## 1. Load the Dataset ---------------------------------------------------------
+# 1. Summary of Deposits =======================================================
+
+# 1.1 Load the Dataset ----------------------------------------------------------
 # Load the Summary of Deposits for the period 1994 to 2020
 sod <- LOAD(dfinput = "banks_sod", dfextension = ".rda")
 setDT(sod)
@@ -32,7 +34,7 @@ sod <- sod[, .(year, fips, depsumbr, rssdid)]
 setorder(sod, year, fips, rssdid)
 
 
-# 2. Create HHI by county ------------------------------------------------------
+# 1.2 Create HHI by county ------------------------------------------------------
 
 # Calculate the sum of deposit by year, financial instiution and fips
 sod <- sod[, bank_cnty_dep := sum(depsumbr), by = .(rssdid, fips, year)]
@@ -58,7 +60,7 @@ sod <- unique(sod, by = c("year", "fips", "rssdid"))
 sod <- sod[, .(hhi = sum(bank_market_share_sq)), by = .(fips, year)]
 # sod <- sod[, check := hhi == 10000]
 
-# 3. Determine counties with HHI = 10000 ---------------------------------------
+# 1.3 Determine counties with HHI = 10000 ---------------------------------------
 
 # Create dummy variable for counties with HHI of 10000. Counties with HHI 10000
 # are associated with rural areas like counties in Alaska, Nebraska, South Dakota etc,
@@ -83,7 +85,7 @@ sod_hhi_rest <- sod_hhi[d_hhi_10000 == 0]
 # Calculate the mean HHI for each county in the main SOD dataset
 sod <- sod[, mean_hhi := mean(hhi), by = fips]
 
-# 4. Create Treatment/Control Dummy Variables ----------------------------------
+# 1.4 Create Treatment/Control Dummy Variables ----------------------------------
 
 # Create different dummy variables for treatment and control group in the main
 # dataset "sod" with the help of sod_hhi
@@ -123,8 +125,7 @@ q70_hhi_rest <- quantile(sod_hhi$mean_hhi, probs = 0.70)
 sod <- sod[, d_q79_rest := ifelse(fips %in% sod_hhi_rest[mean_hhi > q70_hhi_rest], 1, 0)]
 
 # Save dataset
-SAVE(dfx = sod, name = MAINNAME)
-
+SAVE(dfx = sod, name = "SOD_final")
 
 # Calculate the mean of hhi over time in order to identify treatment and control group
 graph_sod <- sod_hhi
@@ -132,6 +133,45 @@ ggplot(data = graph_sod, aes(x = mean_hhi)) +
   geom_density(binwidth = 0.05, fill = "blue", color = "black", alpha = 0.7) +
   labs(title = "Distribution of Mean HHI", x = "Mean HHI", y = "Frequency") +
   theme_minimal()
+
+
+# 2. Federal Funds Rate ========================================================
+
+# Load raw dataset of the federal funds rate
+ffr_data <- LOAD(dfinput = "ffr")
+setDT(ffr_data)
+
+# Creating measures of the federal funds rate
+# Method 1: Average FFR of each year
+ffr_data <- ffr_data[, ffr_mean := mean(ffr), by = year]
+ffr_data <- ffr_data[, d_ffr_mean := as.integer(ifelse( ffr_mean < 2, 1,0))]
+
+# Method 2: Last FFR of each year
+ffr_data <- ffr_data[, ffr_last := ffr[.N], by = .(year)]
+ffr_data <- ffr_data[, d_ffr_last := as.integer(ifelse(ffr_last < 2, 1, 0))]
+
+# Dummy Variable for before and after 2008:
+# From the year 2007 to 8 the US experienced a drop in the FFR by 4.08 as the 
+# Great Recession unfolded.
+ffr_data <- ffr_data[, d_ffr_indicator := as.integer(ifelse(year >= 2008, 1, 0))]
+
+# Restrict the data to the period 
+ffr_data <- ffr_data[inrange(year, 2000, 2020)]
+
+# Reduce dataset to yearly dataset
+ffr_data <- unique(ffr_data, by = c("year"))
+
+# Save dataset
+SAVE(dfx = ffr_data, namex = "ffr")
+
+# 3. Combine Federal Funds Rate & SOD ==========================================
+
+# Combine SOD dataset and FFR dataset by year
+treatment_data <- left_join(sod, ffr_data, by = c("year"))
+
+# Save dataset
+SAVE(treatment_data, namex = MAINNAME)
+
 
 # Follow the strateg
 
