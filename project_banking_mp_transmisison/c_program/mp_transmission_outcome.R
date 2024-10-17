@@ -32,9 +32,11 @@ mortgages_all <- lapply(hmda_files, COUNTYLEVEL, instfilter = FALSE)
 end_time <- Sys.time()
 print(end_time - start_time)
 
+SAVE(dfx = mortgages_banks)
+
 COUNTYLEVEL <- function (filenamex, instfilter) {
-  # filenamex <- hmda_files[18]
-  # instfilter <-  FALSE
+  filenamex <- hmda_files[1]
+  instfilter <-  FALSE
   year <- as.integer(gsub("[^0-9]", "", filenamex))
   # load raw hmda files
   load(paste0(TEMP, "/",filenamex))
@@ -58,7 +60,7 @@ COUNTYLEVEL <- function (filenamex, instfilter) {
   if (year %in% c(2000:2006)) {
     bank_code <- c(1) # All mortgage-subdivisions of banks
   } else if (year %in% c(2007:2017)) {
-    bank_code <- c(1, 2) # All depository instiutions and their mortgage-subdivisions
+    bank_code <- c(1, 2) # All depository institutions and their mortgage-subdivisions
   }
 
   # Filter for only commercial banks, who distributed mortgages + for available to 
