@@ -27,16 +27,35 @@ gc()
 
 hmda_files <- list.files(paste0(TEMP, "/") , pattern = "merge")
 start_time <- Sys.time()
+# Basic Data Cleaning for two possible filters
+# a) Filter for all Commercial Banks
+# Core Problem less and less CB or their mortgage subdivisions are handing out 
+# mortgage after 2009, which is trend observed in the mortgage lending business.
 mortgages_banks <- lapply(hmda_files, COUNTYLEVEL, instfilter = TRUE)
+
+# b) Includes all Financial Institutions
+# This dataset is collapses all loans within a county independently of the 
+# of financial institution. 
 mortgages_all <- lapply(hmda_files, COUNTYLEVEL, instfilter = FALSE)
 end_time <- Sys.time()
 print(end_time - start_time)
 
-SAVE(dfx = mortgages_banks)
+# Create the actual datasets
+hmda_banks <- bind_rows(mortgages_banks)
+hmda_all <- bind_rows(mortgages_all)
+
+# Exclude all missing observation from hmda_all
+hmda_all <- hmda_all[!is.na(total_amount_loan)]
+
+# Save
+SAVE(dfx = hmda_banks, namex = "hmda_banks")
+SAVE(dfx = hmda_all, namex = "hmda_all")
+
+
 
 COUNTYLEVEL <- function (filenamex, instfilter) {
-  filenamex <- hmda_files[1]
-  instfilter <-  FALSE
+  # filenamex <- hmda_files[2]
+  # instfilter <-  FALSE
   year <- as.integer(gsub("[^0-9]", "", filenamex))
   # load raw hmda files
   load(paste0(TEMP, "/",filenamex))
@@ -74,7 +93,7 @@ COUNTYLEVEL <- function (filenamex, instfilter) {
   # Check if there any missing in the columns
   message(paste0("Current Dataset: ", year))
   for (colname in colnames(main)) {
-    if (any(main[[colname]] == "")) {
+    if (any(!nzchar(main[[colname]]))) {
       message(paste("Missing values in column:", colname))
     } else {
       message(paste("No missing values in column:", colname))
@@ -97,7 +116,8 @@ COUNTYLEVEL <- function (filenamex, instfilter) {
   # main <- main[, fips := as.integer(fips)]
   
   # Clean loan amount variable is available in thousands
-  main <- main[, loan_amount := as.integer(gsub("^0{1,3}", "", loan_amount))]
+  main <- main[, loan_amount := as.integer(gsub("^0{1,4}", "", loan_amount))]
+  test <- main[!is.na(loan_amount)]
   
   # Keep only YEAR, fips-code and the loan amount in 000s
   main <- main[, year := as.integer(activity_year)]
