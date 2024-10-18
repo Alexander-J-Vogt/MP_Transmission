@@ -165,6 +165,7 @@ check_obs <- suppressWarnings(check_obs[, ones := 1])
 # Check if rows have duplicates 
 # duplicated_rows <- any(duplicated(check_obs[, .(fips, year)]))
 # check_obs[!duplicated(check_obs, by = c("year", "fips"))]
+
 # Determine the counties that are observed over all periods and filter for those counties
 county_matrix <- dcast(check_obs, fips ~ year, value.var = "ones", fill = 0)
 setDT(county_matrix)
@@ -434,7 +435,7 @@ purrr::walk(panel_files, function(file) {
   rm(data)
 })
   
-
+# Merge both Panel and LRA based on year
 purrr::walk(2000:2017, function(i) {
   lra <- paste0("hmda_lra_", i)
   panel <- paste0("hmda_panel_", i)
@@ -492,7 +493,7 @@ rm(list = c("ffr_data"))
 
 ## 5.1 Import Raw Datasets from U.S. Census ------------------------------------
 
-# Population Estimates for the years 2000 to 2009
+# Population Estimates for the years 2000 to 2010
 pop_00 <- read_csv(paste0(A, "f_us_census_bureau/", "co-est00int-tot.csv"), col_types = cols(.default = "c"))
 setDT(pop_00)
 
@@ -526,6 +527,9 @@ pop_list <- lapply(pop_list, function(data) {
   
   return(data)
 })
+
+# Delete the year 2010 in the population datset for the period 2000 to 2010
+pop_list[[1]] <- subset(pop_list[[1]], year != "2010")
 
 # Create population dataset over all periods for county and states
 pop_data <- bind_rows(pop_list)
