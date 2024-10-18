@@ -33,19 +33,6 @@ setDT(sod)
 # Restrict to the relevant variables
 sod <- sod[, .(year, fips, sims_acquired_date, msabr, bkmo)]
 
-# 
-# Create turnover rate of branches for each year (sims_fips# Create turnover rate of branches for each year (sims_aquired_date)
-# sod <- sod[, year := as.integer(year)]
-# sod <- sod[, sims_acquired_date := 
-#              substr(sims_acquired_date, 
-#                     nchar(sims_acquired_date) - 3, 
-#                     nchar(sims_acquired_date))
-#         ]
-# sod <- sod[, sims_acquired_date := as.integer(sims_acquired_date)]
-# 
-# sod <-  sod[, d_turnover := ifelse(year == sims_acquired_date, 1, NA)]
-# sod <-  sod[, cnty_turnover := sum(d_turnover), by = .(fips, year)]
-
 # Number of Main offices in a county:
 # Create dummy whether county is has the main office or not (bkmo)
 sod <-  sod[, cnty_main_office := sum(bkmo), by = .(fips, year)]
@@ -53,7 +40,7 @@ sod <-  sod[, cnty_main_office := sum(bkmo), by = .(fips, year)]
 # Collapse by year and fips 
 sod <- unique(sod, by = c("year", "fips"))
 
-# Indicatir whether a county lays in a Metropolitan Statistical Area (MSA) or not:
+# Indicator whether a county lays in a Metropolitan Statistical Area (MSA) or not:
 # MSA tells whether an areas has than 50000 inhabitants
 # Could account for the fact that a different economic dynamic is present compared
 # to non-MSA and the amount of loans handed-out is different compared to a areas
@@ -86,15 +73,7 @@ qwi_earnings <- LOAD(dfinput = "qwi_earnings")
 # Import Controls from sod
 controls_sod <- LOAD(dfinput = "controls_sod")
 
-# # Define as data.table
-# datasets <- ls()[sapply(ls(), function(x) is.data.frame(get(x)) || inherits(get(x), "data.table"))]
-# print(datasets)
-# 
-# for (dataset in datasets) {
-#   assign(dataset, setDT(get(dataset)))
-# }
-
-# Comining datsets by county and year
+# Combining datasets by county and year
 merged_data <- left_join(pop_cnty, controls_sod, by = c("fips", "year"))
 merged_data <- left_join(merged_data, qwi_earnings, by = c("fips", "year"))
 merged_data <- left_join(merged_data, ur_cny, by = c("fips", "year"))
