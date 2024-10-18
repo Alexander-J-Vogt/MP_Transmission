@@ -34,6 +34,9 @@ setDT(sod)
 sod <- sod[, .(year, fips, depsumbr, rssdid)]
 setorder(sod, year, fips, rssdid)
 
+# Exclude all irrelevant time periods
+sod <-  sod[inrange(year, 2004 , 2017)]
+
 ## 1.2 Create HHI by county -----------------------------------------------------
 
 # Calculate the sum of deposit by year, financial institution and fips
@@ -55,26 +58,38 @@ sod <- unique(sod, by = c("year", "fips", "rssdid"))
 # Calculate the HHI for each county based on the deposits of one banks in one county in one year.
 sod <- sod[, .(hhi = sum(bank_market_share_sq)), by = .(fips, year)]
 
-# 1.3 Determine counties with HHI = 10000 ---------------------------------------
+# 1.3 Mean HHI for each county ---------------------------------------
+
+# This section does two things:
+# i) Creates and indicator for each county with an HHI of 10000
+# ii) Creates a dataset with the mean HHI of each county over all periods
 
 # Create dummy variable for counties with HHI of 10000. Counties with HHI 10000
 # are associated with rural areas like counties in Alaska, Nebraska, South Dakota etc,
 # There are 96 counties, which have this high market concentration over the whole period.
+
+# Create vector with all counties of a HHI of 10000
 sod_10000 <- sod[hhi == 10000]
 sod_10000 <- unique(sod_10000, by = c("fips", "year"))
+
+# Check, which counties have HHI of 1000 over the whole period
 sod_10000 <- sod_10000[, ones := 1]
 sod_matrix <- dcast(sod_10000, fips ~ year, value.var = "ones", fill = 0)
 conc_10000 <- sod_matrix[rowSums(sod_matrix[ , 2:ncol(sod_matrix), with = FALSE] > 0) == 21]
 cnty_10000 <- sod[sod$fips %in% conc_10000$fips]
-# d_hhi_10000 contains all counties, which have a HHI of 10000 over the whole period
+
+# Create dummy variable d_hhi_10000, which contains all counties with a HHI of 
+# 10000 over the whole period
 sod <- sod[, d_hhi_10000 := ifelse(sod$fips %in% cnty_10000$fips, 1, 0)]
 
-# Calculate the mean HHI for each county for the period 2000 to 2021; based
-# on this mean the counties are divided into treatment and control group
+# Calculate the mean HHI for each county over the period 2004 to 2021
+# Contains observations on county-level (no annual data!)
 sod_hhi <- sod[, .(mean_hhi = mean(hhi)), by = fips]
+
+# Create a dummy variable for each county that has a HHI of 10000 over all periods
 sod_hhi <- sod_hhi[, d_hhi_10000 := ifelse(sod_hhi$fips %in% cnty_10000$fips, 1, 0)]
 
-# Create a dataset equal to sod_hhi but with counties with HHI = 10000
+# Create a dataset equal to sod_hhi but with counties with HHI = 10000 on county-level
 sod_hhi_rest <- sod_hhi[d_hhi_10000 == 0]
 
 # Calculate the mean HHI for each county in the main SOD dataset
@@ -82,10 +97,14 @@ sod <- sod[, mean_hhi := mean(hhi), by = fips]
 
 # 1.4 Create Treatment/Control Dummy Variables ----------------------------------
 
-# Create different dummy variables for treatment and control group in the main
-# dataset "sod" with the help of sod_hhi
+# Create different dummy variables that divide the dataset into treatment and 
+# control group in the main SOD datase. Thereby, sod_hhi (mean hhi on county-level)
+# is used to determine median, mean and q70 of the mean_hhi.
+
+# Datasets with the following are resticted:
 # all: Includes counties with hhi == 10000
 # rest: Exldues counties with hhi == 10000
+
 # a) Threshold: Median
 # All Counties
 median_hhi_all <- median(sod_hhi$mean_hhi)
@@ -96,7 +115,7 @@ median_hhi_rest <- median(sod_hhi_rest$mean_hhi)
 sod <- sod[, d_median_rest := ifelse(fips %in% sod_hhi_rest[mean_hhi > median_hhi_rest], 1, 0)]
 
 # b) Threshold: Mean
-# All Countnties
+# All Counties
 mean_hhi_all <- mean(sod_hhi$mean_hhi)
 sod <- sod[, d_mean_all := ifelse(fips %in% sod_hhi[mean_hhi > mean_hhi_all, fips], 1, 0)]
 
