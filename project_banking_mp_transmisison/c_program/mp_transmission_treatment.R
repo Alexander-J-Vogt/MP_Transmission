@@ -1,6 +1,6 @@
-# TARGET: Creating HHI and dummy variable for dividing counties into high-market concentration and low-market concentratoin 
+# TARGET: Determine Market Concentration in counties + Create treatment/Control group + Create annual data for FFR
 # INDATA: sod_banks
-# OUTDATA/ OUTPUT: 
+# OUTDATA/ OUTPUT: MAINNAME 
 
 ################################################################################################################+
 # INTRO	script-specific ####
@@ -141,13 +141,6 @@ sod <- sod[, d_q79_rest := ifelse(fips %in% sod_hhi_rest[mean_hhi > q70_hhi_rest
 # Save dataset
 SAVE(dfx = sod, name = "SOD_final")
 
-# Calculate the mean of hhi over time in order to identify treatment and control group
-graph_sod <- sod_hhi
-ggplot(data = graph_sod, aes(x = mean_hhi)) +
-  geom_density(binwidth = 0.05, fill = "blue", color = "black", alpha = 0.7) +
-  labs(title = "Distribution of Mean HHI", x = "Mean HHI", y = "Frequency") +
-  theme_minimal()
-
 
 # 2. Federal Funds Rate ========================================================
 
@@ -170,7 +163,7 @@ ffr_data <- ffr_data[, d_ffr_last := as.integer(ifelse(ffr_last < 2, 1, 0))]
 ffr_data <- ffr_data[, d_ffr_indicator := as.integer(ifelse(year >= 2008, 1, 0))]
 
 # Restrict the data to the period 
-ffr_data <- ffr_data[inrange(year, 2000, 2020)]
+ffr_data <- ffr_data[inrange(year, 2004, 2020)]
 
 # Reduce dataset to yearly dataset
 ffr_data <- unique(ffr_data, by = c("year"))
@@ -187,6 +180,7 @@ treatment_data <- left_join(sod, ffr_data, by = c("year"))
 SAVE(treatment_data, namex = MAINNAME)
 
 
+########################## ENDE ################################################
 
 
 
