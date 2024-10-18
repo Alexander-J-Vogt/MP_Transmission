@@ -31,6 +31,7 @@ start_time <- Sys.time()
 # a) Filter for all Commercial Banks
 # Core Problem less and less CB or their mortgage subdivisions are handing out 
 # mortgage after 2009, which is trend observed in the mortgage lending business.
+# instfilter: institution filter for commercial banks (TRUE: Only Commercial banks)
 mortgages_banks <- lapply(hmda_files, COUNTYLEVEL, instfilter = TRUE)
 
 # b) Includes all Financial Institutions
@@ -117,7 +118,7 @@ COUNTYLEVEL <- function (filenamex, instfilter) {
   
   # Clean loan amount variable is available in thousands
   main <- main[, loan_amount := as.integer(gsub("^0{1,4}", "", loan_amount))]
-  test <- main[!is.na(loan_amount)]
+  # test <- main[!is.na(loan_amount)]
   
   # Keep only YEAR, fips-code and the loan amount in 000s
   main <- main[, year := as.integer(activity_year)]
@@ -158,4 +159,3 @@ COUNTYLEVEL <- function (filenamex, instfilter) {
 }
 
 
-sapply(list_merge, length)
