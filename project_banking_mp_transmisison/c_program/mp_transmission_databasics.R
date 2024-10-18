@@ -193,144 +193,161 @@ rm(list = c("combined_sod", "sod_banks", "sod_all", "fips_data"))
 gc()
 
 ### Home Mortgage Disclosure Act (HMDA) ---- 
+# 
+# ## HMDA Data for the years 2000 to 2006 ----
+# # Read all lra and panel data files in their respective file
+# lra_txt_files <- list.files(paste0(A, "a_hdma_lra/"), pattern = ".txt")
+# lra_txt_files <- lra_txt_files[1]
+# panel_txt_files <- list.files(paste0(A, "b_hdma_panel/"), pattern = ".txt")
+# panel_txt_files <- panel_txt_files[1]
+# 
+# # Check if file years are aligning in lra and panel and have the same length
+# if (length(lra_txt_files) != length(panel_txt_files)) {
+#   stop("The LRA and Panel files lists must be of the same length")
+# }
+# 
+# if (!identical(gsub("[^0-9]", "", lra_txt_files), gsub("[^0-9]", "", panel_txt_files))) {
+#   stop("LRA and PANEL years are not aligning.")
+# }
+# 
+# # Setting up a parallel processing plan with two levels of parallel execution using 
+# # multisession
+# plan(list(multisession, multisession), workers = availableCores() - 1)
+# 
+# # Import all HMDA dataset for the years 2000 to 2006 with the help of the 
+# # MERGEHMDATXT function (Import the panel and LRA dataset + merges them by 
+# # respondent_id and agency_code)
+# col_names <- c("activity_year", "respondent_id", "agency_code", "loan_amount", "state_code", "county_code")
+# future_lapply(seq_along(lra_txt_files), function(i) {
+#   # Import and merge HDMA Panel and LRA files
+#   MERGEHMDATXT(lrafilex = lra_txt_files[i], panelfilex = panel_txt_files[i], varnamex = col_names)
+#   # Print that merge for certain year has been completed
+#   print(paste0("HDMA is succesfully saved for the year: ", gsub("[^0-9]", "", lra_txt_files[i])))
+# })
+# 
+# # Basic Data Cleaning as describes in the function COUNTYLEVEL
+# # i) Filters for commerical banks or mortgage-subsidaries of banks
+# # ii) Filters all observation with missing state & county code
+# # iii) Filters all US-Territories
+# # iv) Creates fips-code (unique identifier for each county)
+# # v) Collapses the data by fips and sums up the loan amount within each county
+# hmda_files <- list.files(TEMP, pattern = "raw")
+# hmda_files <- hmda_files[, gsub("[^0-9]", "", hmda_files) %in% c(2000:2006)]
+# 
+# result_hmda <- future_lapply(seq_along(hmda_files), function(i) {
+#   # Merge HDMA Panel and LRA files
+#   data <- COUNTYLEVEL(hmda_files[i], bank_code = c(1)) 
+#   # assign(paste0("hdma_county_", gsub("[^0-9]", "", hmda_files[i])), data)
+#   return(data)
+# })
+# 
+# # Assign the results to the global environment
+# for (i in seq_along(result_hmda)) {
+#   assign(paste0("hmda_county_", result_hmda[[i]]$activity_year), result_hmda[[i]], envir = .GlobalEnv)
+# }
+# 
+# hmda_files <- hmda_files[3]
+# main_2007 <- COUNTYLEVEL(hmda_files[3], bank_code = c(1, 2))
+# 
+# 
+# ## HMDA Data for the years 2007 to 2017 ---- -----------------------------------
+# 
+# 
+# 
+# # Check if file years are aligning in lra and panel and have the same length
+# if (length(lra_csv_files) != length(panel_csv_files)) {
+#   stop("The LRA and Panel files lists must be of the same length")
+# }
+# 
+# if (!identical(gsub("[^0-9]", "", lra_csv_files), gsub("[^0-9]", "", panel_csv_files))) {
+#   stop("LRA and PANEL years are not aligning.")
+# }
+# 
+# select_columns <- c("as_of_year", "respondent_id", "agency_code", "loan_amount_000s", "county_code", "state_code")
+# 
+# # Import all HMDA datasets for the period 2007 to 2017
+# plan(list(multisession, multisession), workers = availableCores() - 4)
+# future_lapply(seq_along(lra_csv_files), function(i) {
+#   # Merge HDMA Panel and LRA files
+#   MERGEHMDA(lrafilex = lra_csv_files[i], panelfilex = panel_csv_files[i])
+#   # Print after 
+#   print(paste0("HDMA is succesfully saved for the year: ", gsub("[^0-9]", "", lra_csv_files[i])))
+#   gc()
+# })
 
-## HMDA Data for the years 2000 to 2006 ----
-# Read all lra and panel data files in their respective file
-lra_txt_files <- list.files(paste0(A, "a_hdma_lra/"), pattern = ".txt")
-lra_txt_files <- lra_txt_files[1]
-panel_txt_files <- list.files(paste0(A, "b_hdma_panel/"), pattern = ".txt")
-panel_txt_files <- panel_txt_files[1]
 
-# Check if file years are aligning in lra and panel and have the same length
-if (length(lra_txt_files) != length(panel_txt_files)) {
-  stop("The LRA and Panel files lists must be of the same length")
-}
+# 3. Import Data from the Housing Mortgage Disclosure Act ======================
 
-if (!identical(gsub("[^0-9]", "", lra_txt_files), gsub("[^0-9]", "", panel_txt_files))) {
-  stop("LRA and PANEL years are not aligning.")
-}
+# The Home Mortgage Disclosure Act (HMDA) contains information on every originated 
+# mortgage in the United States. This allows to later create a dataset on mortgage
+# loan amount for each county. Thereby, each financial institution is obligated to 
+# hand-in information on the mortgage loan, which can be identified by the 
+# respondent ID.
 
-# Setting up a parallel processing plan with two levels of parallel execution using 
-# multisession
-plan(list(multisession, multisession), workers = availableCores() - 1)
-
-# Import all HMDA dataset for the years 2000 to 2006 with the help of the 
-# MERGEHMDATXT function (Import the panel and LRA dataset + merges them by 
-# respondent_id and agency_code)
-col_names <- c("activity_year", "respondent_id", "agency_code", "loan_amount", "state_code", "county_code")
-future_lapply(seq_along(lra_txt_files), function(i) {
-  # Import and merge HDMA Panel and LRA files
-  MERGEHMDATXT(lrafilex = lra_txt_files[i], panelfilex = panel_txt_files[i], varnamex = col_names)
-  # Print that merge for certain year has been completed
-  print(paste0("HDMA is succesfully saved for the year: ", gsub("[^0-9]", "", lra_txt_files[i])))
-})
-
-# Basic Data Cleaning as describes in the function COUNTYLEVEL
-# i) Filters for commerical banks or mortgage-subsidaries of banks
-# ii) Filters all observation with missing state & county code
-# iii) Filters all US-Territories
-# iv) Creates fips-code (unique identifier for each county)
-# v) Collapses the data by fips and sums up the loan amount within each county
-hmda_files <- list.files(TEMP, pattern = "raw")
-hmda_files <- hmda_files[, gsub("[^0-9]", "", hmda_files) %in% c(2000:2006)]
-
-result_hmda <- future_lapply(seq_along(hmda_files), function(i) {
-  # Merge HDMA Panel and LRA files
-  data <- COUNTYLEVEL(hmda_files[i], bank_code = c(1)) 
-  # assign(paste0("hdma_county_", gsub("[^0-9]", "", hmda_files[i])), data)
-  return(data)
-})
-
-# Assign the results to the global environment
-for (i in seq_along(result_hmda)) {
-  assign(paste0("hmda_county_", result_hmda[[i]]$activity_year), result_hmda[[i]], envir = .GlobalEnv)
-}
-
-hmda_files <- hmda_files[3]
-main_2007 <- COUNTYLEVEL(hmda_files[3], bank_code = c(1, 2))
-
-
-## HMDA Data for the years 2007 to 2017 ---- -----------------------------------
-
-
-
-# Check if file years are aligning in lra and panel and have the same length
-if (length(lra_csv_files) != length(panel_csv_files)) {
-  stop("The LRA and Panel files lists must be of the same length")
-}
-
-if (!identical(gsub("[^0-9]", "", lra_csv_files), gsub("[^0-9]", "", panel_csv_files))) {
-  stop("LRA and PANEL years are not aligning.")
-}
-
-select_columns <- c("as_of_year", "respondent_id", "agency_code", "loan_amount_000s", "county_code", "state_code")
-
-# Import all HMDA datasets for the period 2007 to 2017
-plan(list(multisession, multisession), workers = availableCores() - 4)
-future_lapply(seq_along(lra_csv_files), function(i) {
-  # Merge HDMA Panel and LRA files
-  MERGEHMDA(lrafilex = lra_csv_files[i], panelfilex = panel_csv_files[i])
-  # Print after 
-  print(paste0("HDMA is succesfully saved for the year: ", gsub("[^0-9]", "", lra_csv_files[i])))
-  gc()
-})
-
-
-# Import of HMDA files -----
+##  3.1 List Panel and Loan Application Records Files (LRA) --------------------   
 lra_files <- list.files(paste0(A, "a_hdma_lra/"))
 lra_files <- lra_files[gsub("[^0-9]", "", lra_files) %in% c(2000:2017)]
-# lra_files <- lra_files[1]
 panel_files <- list.files(paste0(A, "b_hdma_panel/"))
 panel_files <- panel_files[gsub("[^0-9]", "", panel_files) %in% c(2000:2017)]
+if (DEBUG) {
+lra_files <- lra_files[1]
 panel_files <- panel_files[1]
+}
 
 start_time <- Sys.time()
 
+
+# # 3.2 Import LRA files -------------------------------------------------------
+
+# This loop import all LRA files
 lapply(lra_files, function(file) {
-  # Account for different column names
+  
+  # Column name depend on the years of the submission of the LRA as the program
+  # has undergone several changes over time.
   if (as.integer(gsub("[^0-9]", "", file) %in% c(2000:2006))) {
     lra_columns <- c("activity_year", "respondent_id", "agency_code", "loan_amount", "state_code", "county_code")
   } else if (as.integer(gsub("[^0-9]", "", file) %in% c(2007:2017))) {
     lra_columns <- c("as_of_year", "respondent_id", "agency_code", "loan_amount_000s", "state_code", "county_code")
   } 
   
-  # Load all the raw LRA data on respondent-ID level (contains the information on each handed out loan)
+  # Load all the raw LRA data on respondent-ID level (contains the information 
+  # on each handed out loan). In order to reduce processing time, only the 
+  # relevant variables in lra_columns are imported.
   data <- fread(paste0(A, "a_hdma_lra/", file), colClasses = "character", select = lra_columns)
   
-  # Adjust Column names
+  # Standardize the column names
   if (as.integer(gsub("[^0-9]", "", file) %in% c(2007:2017))){
     setnames(data,
              old = c("as_of_year", "respondent_id", "agency_code", "loan_amount_000s", "state_code", "county_code"),
              new = c("activity_year", "respondent_id", "agency_code", "loan_amount", "state_code", "county_code"))
   }
   
-  
-  
   # Save the raw lra dataset
   SAVE(dfx = data, namex = paste0("hmda_lra_", gsub("[^0-9]", "", file)), pattdir = TEMP)
   print(paste0("LRA: Successful import of the year ", gsub("[^0-9]", "", file)))
   
-  # Free unused memorey
+  # Free unused memory and clear object from the  global environment.
   gc()
   rm(data)
 })
 
-end_time <- Sys.time()
-print(end_time - start_time)
+## 3.3 Import Panel files ------------------------------------------------------
 
+# Import Panel data and retrieve all unique observation in order to
+# get the all unique respondent_id and agency_code combinations.
+# This is later needed to identify Commercial Banks that hand out Mortgages with 
+# the help of the variable "other_lender_code".
 
-
-  
+# This loop imports panel data 
 purrr::walk(panel_files, function(file) {
-  # Import Panel data and retrieve all unique observation in order to
-  # get the all unique respondent_id and agency_code combinations.
-  # This is later needed to identify Commercial Banks that hand out Mortgages.
-  # Check which year of the data is imported and adjust the column names.
-  file <- panel_files[12]
+   # file <- panel_files[12]
   year <- as.integer(gsub("[^0-9]", "", file))
   
+  # Check which year of the data is imported and adjust the column names.
   if (year == 2007) {
-    # Reading in the file from 2009 needed a manual fix by skiping the last observation
+    # Reading in the file from 2009 needed a manual fix by skipping the last observation.
+    # Otherwise, it was not possible to read the file independently of the import 
+    # package used. 
     data <- fread(paste0(A, "b_hdma_panel/", file), nrows = 8608, colClasses = "character")
   } else {
     data <- fread(paste0(A, "b_hdma_panel/", file), colClasses = "character")
@@ -347,33 +364,49 @@ purrr::walk(panel_files, function(file) {
              new = c("respondent_id", "agency_code", "other_lender_code"))
   }
   
-  # select the relevant variables
+  # Select the relevant variables
   data <- data[, c("respondent_id", "agency_code", "other_lender_code")]
   # get rid off any duplicants
   data <- unique(data, by = c("respondent_id", "agency_code"))
   
+  # Save the panel dataset
   SAVE(dfx = data, namex = paste0("hmda_panel_", year), pattdir = TEMP)
-  print(paste0("Panel: Successful import of the year ", year))
-  gc()
-  rm(data)
-})
   
+  # Update on iteration process
+  print(paste0("Panel: Successful import of the year ", year))
+  
+  # Remove objects from the global environment and clean memory
+  rm(data)
+  gc()
+})
+
+## 3.4 Merging the Panel and LRA dataset with each other -----------------------
+
+#' In the next step, the final HMDA dataset for each year is produced. 
+#' These datasets are all on respondent-ID level, where each respondent can have
+#' multiple observations as they have to report every single originated loan.
+
 # Merge both Panel and LRA based on year
 purrr::walk(2000:2017, function(i) {
+  
+  # Determine the imported LRA and Panel dependent on the year
   lra <- paste0("hmda_lra_", i)
   panel <- paste0("hmda_panel_", i)
   
+  # Import the HMDA datasets of the current iteration
   load(file = paste0(TEMP, "/", lra, ".rda"))
   load(file = paste0(TEMP, "/", panel, ".rda"))
   
+  # Retrieve the object based on the vector lra and panel
   dflra <- get(lra)
   dfpanel <- get(panel)
   
-  # Performs a left_join
+  # Performs a left_join as we want to keep the observation level of the LRA
+  # and want to be able to identify the lender code of each respondents.  
   main <- left_join(dflra, dfpanel, by = c("respondent_id", "agency_code"))
   
-  # Check if LRA and main dataset have same length
-  
+  # Check if LRA and main dataset have same length: Test to make sure that 
+  # no additional observations are added. (Double Check)
   if (nrow(main) == nrow(dflra)) {
     message("Merge successful for year: ", i)
   } else {
@@ -381,15 +414,16 @@ purrr::walk(2000:2017, function(i) {
             ", Merged observations: ", nrow(main))
   }
   
-  # Save merged file
+  # Save the merged file
   SAVE(dfx = main, namex = paste0("hmda_merge_", i))
   
-  # Clean up memory space
+  # Clean up memory and Free unused memory
   rm(list = c(paste0("hmda_lra_", i), paste0("hmda_panel_", i), "main", "dflra", "dfpanel"))
-  
-  # Free unused memory
   gc()
 })
+
+end_time <- Sys.time()
+print(end_time - start_time)
 
 # 4. Federal Funds Rate ========================================================
 
@@ -573,6 +607,5 @@ earnings_data <- earnings_data[, year := as.integer(year)]
 # SAVE
 SAVE(dfx = earnings_data, namex = "qwi_earnings")
 
-################################################################################
+
 ########################## ENDE ################################################
-################################################################################
