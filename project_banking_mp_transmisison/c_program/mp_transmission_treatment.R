@@ -50,8 +50,6 @@ sod <- sod[, bank_market_share_sq := bank_market_share^2]
 
 # Drop all duplicates
 sod <- unique(sod, by = c("year", "fips", "rssdid"))
-# test <- test[, check := sum(bank_market_share), by = .(fips, year)]
-# duplicate_rows <- sod[duplicated(sod, by = c("year", "fips", "rssdid"))]
 
 # Calculate the HHI for each county
 sod <- sod[, .(hhi = sum(bank_market_share_sq)), by = .(fips, year)]
