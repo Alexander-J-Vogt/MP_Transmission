@@ -173,11 +173,6 @@ treatment_data <- left_join(sod, ffr_data, by = c("year"))
 SAVE(treatment_data, namex = MAINNAME)
 
 
-# Follow the strateg
 
-# Calculate the market-share of one 
-# Create turnover rate of branches for each year (sims_aquired_date)
-# Create dummy variable for whether county lays in a Metropolitan Statistical Area or not (msabr)
-# Create dummy whether county is has the main office or not (bkmo)
 
 
