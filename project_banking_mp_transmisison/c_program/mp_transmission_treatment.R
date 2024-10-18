@@ -48,12 +48,12 @@ sod <- sod[, bank_market_share := bank_cnty_dep / cnty_tot_dep * 100]
 sod <- sod[, bank_market_share := ifelse(is.nan(bank_market_share), 0, bank_market_share)]
 sod <- sod[, bank_market_share_sq := bank_market_share^2]
 
-# Drop all duplicates
+# Drop all duplicates in order to create a dataset on bank-cnty-year level:
+# One observation is equal to the deposits of one bank in one county in one year.
 sod <- unique(sod, by = c("year", "fips", "rssdid"))
 
-# Calculate the HHI for each county
+# Calculate the HHI for each county based on the deposits of one banks in one county in one year.
 sod <- sod[, .(hhi = sum(bank_market_share_sq)), by = .(fips, year)]
-# sod <- sod[, check := hhi == 10000]
 
 # 1.3 Determine counties with HHI = 10000 ---------------------------------------
 
