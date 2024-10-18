@@ -24,7 +24,8 @@ gc()
 
 # 1. Summary of Deposits =======================================================
 
-# 1.1 Load the Dataset ----------------------------------------------------------
+## 1.1 Load the Dataset ---------------------------------------------------------
+
 # Load the Summary of Deposits for the period 1994 to 2020
 sod <- LOAD(dfinput = "banks_sod", dfextension = ".rda")
 setDT(sod)
@@ -33,18 +34,14 @@ setDT(sod)
 sod <- sod[, .(year, fips, depsumbr, rssdid)]
 setorder(sod, year, fips, rssdid)
 
+## 1.2 Create HHI by county -----------------------------------------------------
 
-# 1.2 Create HHI by county ------------------------------------------------------
-
-# Calculate the sum of deposit by year, financial instiution and fips
+# Calculate the sum of deposit by year, financial institution and fips
 sod <- sod[, bank_cnty_dep := sum(depsumbr), by = .(rssdid, fips, year)]
 
 # Calculate the sum of deposits by year and fips-code
 sod <- sod[, cnty_tot_dep := sum(depsumbr), by = .(fips, year)]
 
-# Check identical observation
-sod <- sod[, check_identical := bank_cnty_dep == cnty_tot_dep]
-sod[check_identical == T]
 # Calculate the market share and square the value of it. Additionally, substitute
 # all NaN with 0, which were produced when only one bank is active in the whole county.
 sod <- sod[, bank_market_share := bank_cnty_dep / cnty_tot_dep * 100]
