@@ -53,37 +53,6 @@ banks_data <- banks_data[between(year, start, end)]
 
 complete_banks_data <- COMPLETEOBS(data = banks_data, rowx = "fips", colx = "year")
 
-
-COMPLETEOBS <- function(data, rowx, colx) {
-
-  # Only allow for observation with no missings
-  complete_data <- data[complete.cases(data),]
-  setDT(complete_data)
-  
-  # Determine diff_year
-  start <- min(data[[colx]])
-  end <- max(data[[colx]])
-  diff <- end - start + 1
-  
-  # Get the right dimensions of the data
-  check <- complete_data[,.SD, .SDcols = c(rowx, colx)]
-  
-  # Get observation, which are observed over the whole time period
-  check <- check[, ones := 1]
-  check <- data.table::dcast(check, as.formula(paste(rowx, "~", colx)), value.var = "ones", fill = 0)
-  full_obs <- check[rowSums(check[ , 2:ncol(check), with = FALSE]) == diff]
-  
-  # Take the column of full_obs that identifies all rows, which are observed over 
-  # the whole time period and subset with these the dataset with all complete cases
-  final <- complete_data[complete_data[[rowx]] %in% full_obs[[rowx]]]
-  
-  # Return the final dataset
-  return(final)
-}
-
-
-
-
 # 2. Dataset with Mortgages of all Financial Institutions ======================
 
 allfin_data <- LOAD(dfinput = "merged_allfin_data")
