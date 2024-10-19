@@ -68,3 +68,27 @@ source(paste0(DO,input,sep=""), echo=TRUE, max=1000)
 # read-in + basic editing of raw data: create base df ####
 input <- 'mp_transmission_databasics.R'
 source(paste0(DO,input,sep=""), echo=TRUE, max=1000)
+
+#############################################+
+# manipulating outcome, treatment and control variables ####
+input <- 'mp_transmission_outcome.R'
+source(paste0(DO,input,sep=""), echo=TRUE, max=1000)
+
+input <- 'mp_transmission_treatment.R'
+source(paste0(DO,input,sep=""), echo=TRUE, max=1000)
+
+input <- 'mp_transmission_control.R'
+source(paste0(DO,input,sep=""), echo=TRUE, max=1000)
+
+#############################################+
+# merge outcome, treatment and control variables
+input <- 'mp_transmission_merge.R'
+source(paste0(DO,input,sep=""), echo=TRUE, max=1000)
+
+#############################################+
+# main work on dataset
+input <- 'mp_transmission_main.R'
+source(paste0(DO,input,sep=""), echo=TRUE, max=1000)
+
+
+
