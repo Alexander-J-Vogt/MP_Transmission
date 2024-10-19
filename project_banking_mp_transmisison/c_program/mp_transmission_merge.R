@@ -1,6 +1,6 @@
-# TARGET: 
-# INDATA: 
-# OUTDATA/ OUTPUT:
+# TARGET: Merging Outcome, Treatment and Control Dataset
+# INDATA:  hmda_banks, hmda_all, mp_transmission_treatment, mp_transmission_control
+# OUTDATA/ OUTPUT: merged_banks_data, merged_allfin_data
 
 ################################################################################################################+
 # INTRO	script-specific ####
@@ -33,27 +33,35 @@ setDT(outcome_banks_data)
 # b) Dataset that includes all financial institutions that lend mortgage
 outcome_all_data <- LOAD(dfinput = "hmda_all")
 setDT(outcome_all_data)
-# loading treatment data (important as this contains counties, which are observed over all time periods in the SOD)
+
+# Loading treatment data from Treatment Script
+# (important as this contains counties, which are observed over all time periods in the SOD)
 treatment_data <- LOAD(dfinput = "mp_transmission_treatment")
 setDT(treatment_data)
 
-# Loading control data
+# Loading control data from the control scripts
 controls_data <- LOAD(dfinput = "mp_transmission_control")
 setDT(controls_data)
 
-# 2. Commerical Banks ==========================================================
+# 2. Commercial Banks ==========================================================
 
-# Perform Full Join between Mortgage Data and treatment (SOD + FFR) ------------
+# Perform Full Join between Mortgage Data, treatment (SOD + FFR) & control data if only 
+# mortgages of commercial banks are observed
 banks_data <- full_join(outcome_banks_data, treatment_data, by = c("fips", "year"))
 banks_data <- full_join(banks_data, controls_data, by = c("fips", "year"))
 
+# Save
 SAVE(dfx = banks_data, namex = "merged_banks_data")
 
 # 3. All Financial Institutions ================================================
 
+# Perform Full Join between Mortgage Data, treatment (SOD + FFR) & control data if 
+# mortgages of all financial institutions are allowed
 allfin_data <- full_join(outcome_all_data, treatment_data, by = c("fips", "year"))
 allfin_data <- full_join(allfin_data, controls_data, by = c("fips", "year"))
 
+# SAVE
 SAVE(dfx = allfin_data, namex = "merged_allfin_data")
 
 
+########################## ENDE ###############################################+
