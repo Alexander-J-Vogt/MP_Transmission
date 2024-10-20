@@ -32,7 +32,7 @@ setDT(main_banks_data)
 # 1. Analyse the attrition of counties =========================================
 
 # Check the number of counties of the united states
-state_counties <- fips_data[, .N, by = .(state_code,)]
+state_counties <- fips_data[, .N, by = .(state_code)]
 
 # Number of counties per state in the main dataset with all commercial banks
 banks_state_cnty <- main_banks_data[, c("fips", "state")]
@@ -91,5 +91,28 @@ table(check_dist$d_qu70_all)
 # 3. Check the Mean of variables and see how they evolve for treatment and control group
 
 # Median
-check_pta <- main_banks_data[]
+check_pta <- main_banks_data[, .(mean_loan = mean(total_amount_loan)), by = .(d_median_all, year)]
 
+
+ggplot(check_pta, aes(x = year, y = mean_loan, color = factor(d_median_all), group = d_median_all)) +
+  geom_line(size = 1) +  # Line plot
+  geom_point() +         # Add points to the line
+  labs(title = "Mean Loan by Year and d_median_all",
+       x = "Year", y = "Mean Loan",
+       color = "d_median_all") +
+  theme_minimal()
+
+# Weight loan by population size
+check_wtd <- main_banks_data[, state_pop := sum(cnty_pop), by = state]
+check_wtd <- check_wtd[, wt_pop_cnty := cnty_pop / state_pop ]
+check_wtd <- check_wtd[, wdt_tot_loan := total_amount_loan * wt_pop_cnty]
+
+check_wtd <- main_banks_data[, .(mean_loan = mean(wdt_tot_loan)), by = .(d_median_all, year)]
+
+ggplot(check_wtd, aes(x = year, y = mean_loan, color = factor(d_median_all), group = d_median_all)) +
+  geom_line(size = 1) +  # Line plot
+  geom_point() +         # Add points to the line
+  labs(title = "Mean Loan by Year and d_median_all",
+       x = "Year", y = "Mean Loan",
+       color = "d_median_all") +
+  theme_minimal()
