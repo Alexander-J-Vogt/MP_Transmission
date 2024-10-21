@@ -91,4 +91,14 @@ input <- 'mp_transmission_main.R'
 source(paste0(DO,input,sep=""), echo=TRUE, max=1000)
 
 
+#############################################+
+# analysis of dataset
+input <- 'mp_transmission_analysis_vardistribution.R'
+source(paste0(DO,input,sep=""), echo=TRUE, max=1000)
+
+input <- 'mp_transmission_analysis_regression.R'
+source(paste0(DO,input,sep=""), echo=TRUE, max=1000)
+
+input <- 'mp_transmission_analysis_figures.R'
+source(paste0(DO,input,sep=""), echo=TRUE, max=1000)
 
