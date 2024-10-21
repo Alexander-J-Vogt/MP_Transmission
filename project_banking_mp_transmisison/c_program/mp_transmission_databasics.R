@@ -1,4 +1,4 @@
-# TARGET: Reading 
+# TARGET: Reading-In all Raw Datasets  & Perform basic data cleaning
 # INDATA: 
 # OUTDATA/ OUTPUT:
 
@@ -24,7 +24,7 @@ gc()
 
 # 1. Import US FIPS County Codes ===============================================
 # FIPS Code is the unique identifier of a county and consist of a 5-digit number.
-# The first two digits is the state code, while the last three digist are county-code.
+# The first two digits is the state code, while the last three digits are county-code.
 
 # This data is used to verify fips code in the Summary of Deposits
 # SOD contians fips code that do not exist.
@@ -44,6 +44,10 @@ rm(fips_data)
 # list all raw sod files in h_sod_direct
 files_sod <- list.files(paste0(A, "h_sod_direct/"))
 files_sod <- files_sod[grepl("\\csv$",files_sod)]
+years <- as.numeric(str_extract(files_sod, "\\d{4}"))
+files_sod <- files_sod[years >= 1994 & years <= 2017]
+
+# files_sod <-  files_sod[26]
 
 # Loop for importing all sod datasets from 1994 to 2024 
 for (i in files_sod) {
@@ -54,6 +58,8 @@ for (i in files_sod) {
   rm(file, year)
 }
 
+# test <- fread(paste0(A, "h_sod_direct/", files_sod))
+
 ## 2.2 Append all raw SOD files ------------------------------------------------
 
 # Loop over all SOD datasets in order to create one large data frame for 
@@ -62,6 +68,8 @@ for (i in files_sod) {
 # Create vector with all names of SOD datasets
 sod_temp <- list.files(paste0(TEMP))
 sod_temp <- sod_temp[str_detect(sod_temp, "^sod")]
+years <- as.numeric(str_extract(sod_temp, "\\d{4}"))
+sod_temp <- sod_temp[years >= 1994 & years <= 2017]
 
 # Create empty list in which all SOD datasets will be saved
 combined_sod <- list()
@@ -131,7 +139,7 @@ combined_sod <- combined_sod[, specdesc := gsub("-", "_", specdesc)]
 combined_sod <- combined_sod[, specdesc := gsub("\\$", "", specdesc)]
 
 # Restrict the dataset the year 2000 to 2020
-combined_sod <- combined_sod[between(year, 2000, 2020)]
+combined_sod <- combined_sod[between(year, 2000, 2017)]
 
 # Create fips-code by combining the state and county code
 combined_sod <- combined_sod[stnumbr != "" & cntynumb != ""]
@@ -139,6 +147,9 @@ combined_sod <- combined_sod[, stnumbr := ifelse(nchar(stnumbr) == 1, paste0("0"
 combined_sod <- combined_sod[, cntynumb := ifelse(nchar(cntynumb) == 2, paste0("0", cntynumb), cntynumb)]
 combined_sod <- combined_sod[, cntynumb := ifelse(nchar(cntynumb) == 1, paste0("00", cntynumb), cntynumb)]
 combined_sod <- combined_sod[, fips := paste0(stnumbr, cntynumb)]
+
+test <- combined_sod
+combined_sod <- test
 
 # Excluding the following US territories as they are not relevant for the analysis: 
 # Puerto Rico (72), US Virgin Islands (78), American Samoa (60), 
@@ -163,15 +174,16 @@ check_obs <- check_obs |> distinct(fips, year)
 check_obs <- suppressWarnings(check_obs[, ones := 1])
 
 # Check if rows have duplicates 
-# duplicated_rows <- any(duplicated(check_obs[, .(fips, year)]))
-# check_obs[!duplicated(check_obs, by = c("year", "fips"))]
+duplicated_rows <- any(duplicated(check_obs[, .(fips, year)]))
+check_obs[!duplicated(check_obs, by = c("year", "fips"))]
 
 # Determine the counties that are observed over all periods and filter for those counties
 county_matrix <- dcast(check_obs, fips ~ year, value.var = "ones", fill = 0)
 setDT(county_matrix)
-counties_full_obs <- county_matrix[rowSums(county_matrix[ , 2:ncol(county_matrix), with = FALSE] > 0) == 21]
+counties_full_obs <- county_matrix[rowSums(county_matrix[ , 2:ncol(county_matrix), with = FALSE] > 0) == 18]
+uniqueN(combined_sod)
 combined_sod <- combined_sod[fips %in% counties_full_obs$fips]
-
+uniqueN(combined_sod)
 ## 2.4 Save datasets  ----------------------------------------------------------
 
 # Create two different datasets
@@ -524,4 +536,4 @@ earnings_data <- earnings_data[, year := as.integer(year)]
 SAVE(dfx = earnings_data, namex = "qwi_earnings")
 
 
-########################## ENDE ################################################
+########################## ENDE ###############################################+
