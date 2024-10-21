@@ -117,11 +117,45 @@ ggplot(check_wtd, aes(x = year, y = mean_loan, color = factor(d_median_all), gro
        color = "d_median_all") +
   theme_minimal()
 
-# 
-descriptive_stats <- data[, .(
-  count = .N,
-  mean_value = mean(value),
-  median_value = median(value),
-  sd_value = sd(value)
-), by = .(year, dummy_var)]
+#    
 
+vars <- c("hhi", "total_amount_loan", "cnty_pop", "ur", "mean_earning", "mean_emp")  # List of variables to summarize
+
+# Loop over each variable using lapply
+descriptive_stats_list <- lapply(vars, function(var) {
+  main_banks_data[, .(
+    count = .N,
+    mean_value = as.numeric(mean(get(var), na.rm = TRUE)),   # Ensure consistency as numeric
+    median_value = as.numeric(median(get(var), na.rm = TRUE)),
+    sd_value = as.numeric(sd(get(var), na.rm = TRUE))
+  ), by = .(year, d_median_all)]
+})
+
+# Naming the list elements for better clarity
+names(descriptive_stats_list) <- vars
+
+
+mean_value_plots <- lapply(names(descriptive_stats_list), function(varname) {
+  # varname <-  "ur"
+  # Subset data for d_median_all == 1 and d_median_all == 0
+  data_1 <- descriptive_stats_list[[varname]][d_median_all == 1]
+  data_0 <- descriptive_stats_list[[varname]][d_median_all == 0]
+  
+  # Create a ggplot object to plot the mean_value over time
+  plot <- ggplot() +
+    geom_line(data = data_1, aes(x = year, y = mean_value), color = "blue") +
+    geom_line(data = data_0, aes(x = year, y = mean_value), color = "red") +
+    ggtitle(paste("Mean of", varname, "over time")) +
+    labs(x = "Year", y = "Mean Value") +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    scale_x_continuous(breaks = unique(descriptive_stats_list[[varname]]$year)) +
+    scale_y_continuous(expand = expansion(mult = c(0, 0.05))) +
+    theme_minimal()
+  
+  # Return the plot
+  return(plot)
+})
+
+for (plot in mean_value_plots) {
+  print(plot)
+}
