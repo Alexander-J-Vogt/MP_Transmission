@@ -116,3 +116,12 @@ ggplot(check_wtd, aes(x = year, y = mean_loan, color = factor(d_median_all), gro
        x = "Year", y = "Mean Loan",
        color = "d_median_all") +
   theme_minimal()
+
+# 
+descriptive_stats <- data[, .(
+  count = .N,
+  mean_value = mean(value),
+  median_value = median(value),
+  sd_value = sd(value)
+), by = .(year, dummy_var)]
+
