@@ -1,6 +1,6 @@
-# TARGET: 
-# INDATA: 
-# OUTDATA/ OUTPUT:
+# TARGET: Creating two county-level datasets, where one only contains mortgages of commercial banks and one from all financial institutions
+# INDATA: hmda_merge files for all years
+# OUTDATA/ OUTPUT: hmda_banks, hmda_all
 
 ################################################################################################################+
 # INTRO	script-specific ####
@@ -22,7 +22,7 @@ gc()
 ################################################################################################################+
 # MAIN PART ####
 
-# 1. Data CLeaning and Collapsing Data to County-level ========================= 
+# 1. Data Cleaning and Collapsing Data to County-level ========================= 
 
 #' This section performs a standardized way to do some basic cleaning of data
 #' and collapses the data to county-level with the help of the COUNTYLEVEL function.
@@ -64,7 +64,4 @@ SAVE(dfx = hmda_banks, namex = "hmda_banks")
 SAVE(dfx = hmda_all, namex = "hmda_all")
 
 
-########################## ENDE ################################################
-
-
-
+########################## ENDE ###############################################+
