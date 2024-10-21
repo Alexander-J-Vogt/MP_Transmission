@@ -31,7 +31,7 @@ diff_year <- end - start + 1
 # 1. Dataset with Mortgages of Commercial Banks ================================
 
 # Load merged data
-banks_data <- LOAD(dfinput = "merged_banks_data")
+banks_data <- LOAD(dfinput = "banks_data_joined")
 setDT(banks_data)
 
 # Subset for the relevant period
@@ -55,7 +55,7 @@ complete_banks_data <- COMPLETEOBS(data = banks_data, rowx = "fips", colx = "yea
 
 # 2. Dataset with Mortgages of all Financial Institutions ======================
 
-allfin_data <- LOAD(dfinput = "merged_allfin_data")
+allfin_data <- LOAD(dfinput = "allfin_data_joined")
 # 2. All fin
 setDT(allfin_data)
 
@@ -85,5 +85,11 @@ complete_allfin_data <- COMPLETEOBS(allfin_data, rowx = "fips", colx = "year")
 SAVE(dfx = complete_allfin_data, namex = "main_allfin_data")
 
 SAVE(dfx = complete_banks_data, namex = "main_banks_data")
+
+#### Extra 
+
+
+
+
 
 ########################## ENDE ###############################################+
