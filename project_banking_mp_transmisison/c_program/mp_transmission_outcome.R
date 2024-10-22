@@ -38,6 +38,7 @@ gc()
 
 # List all merged files
 hmda_files <- list.files(paste0(TEMP, "/") , pattern = "merge")
+hmda_files <- hmda_files[1:3]
 start_time <- Sys.time()
 # Basic Data Cleaning for two possible filters
 # a) Filter for all Commercial Banks
@@ -45,7 +46,7 @@ start_time <- Sys.time()
 # mortgage after 2009, which is trend observed in the mortgage lending business.
 mortgages_banks <- lapply(hmda_files, COUNTYLEVEL, instfilter = TRUE)
 
-# b) Includes all Financial Institutions
+s# b) Includes all Financial Institutions
 # This dataset is collapses all loans within a county independently of the 
 # of financial institution. 
 mortgages_all <- lapply(hmda_files, COUNTYLEVEL, instfilter = FALSE)
@@ -55,6 +56,25 @@ print(end_time - start_time)
 # Create the actual datasets
 hmda_banks <- bind_rows(mortgages_banks)
 hmda_all <- bind_rows(mortgages_all)
+
+# 2. Create weights for counties
+pop_cnty <- LOAD(dfinput = "pop_cnty")
+setDT(pop_cnty)
+pop_cnty[, us_pop := sum(cnty_pop), by = year] 
+pop_cnty[, wt_cnty_pop := cnty_pop / us_pop]
+
+# Merge hmda dataset with population dataset
+hmda_banks <- merge(hmda_banks, pop_cnty, by = c("fips", "year"), all.x = TRUE)
+
+# Create several variables with logs and leads, weighted and not weighted outcome variables
+hmda_banks[, wtd_loan_amount := total_amount_loan * wt_cnty_pop]
+hmda_banks[, ln_loan_amount := log(total_amount_loan)]
+hmda_banks[, ln_wtd_loan_amount := log(total_amount_loan)]
+hmda_banks[, lead_wtd_loan_amount := shift(wtd_loan_amount, type = "lead"), by = fips]
+hmda_banks[, lead_ln_loan_amount := shift(ln_loan_amount, type = "lead"), by = fips]
+hmda_banks[, lead_ln_wtd_loan_amount := shift(ln_wtd_loan_amount, type = "lead"), by = fips]
+
+
 
 # Exclude all missing observation from hmda_all
 hmda_all <- hmda_all[!is.na(total_amount_loan)]
