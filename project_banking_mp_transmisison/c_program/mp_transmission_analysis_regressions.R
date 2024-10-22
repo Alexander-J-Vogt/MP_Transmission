@@ -25,19 +25,67 @@ gc()
 main <- LOAD(dfinput = "main_banks_data")
 setDT(main)
 
+outcome_var <- c("ln_loan_amount", "ln_wtd_loan_amount", "lead_ln_loan_amount", "lead_ln_wtd_loan_amount")
+
+lapply(outcome_var, function (x) {
+  # x <- outcome_var[1]
+  did1 <- felm(as.formula(paste0(x,  "~" , "d_median_all + d_ffr_indicator + d_median_all * d_ffr_indicator | 0 | 0 | 0 ")), data = main)
+  did2 <- felm(as.formula(paste0(x,  "~" , "d_median_all + d_ffr_indicator + d_median_all * d_ffr_indicator + cnty_pop | 0 | 0 | 0")), data = main)
+  did3 <- felm(as.formula(paste0(x,  "~" , "d_median_all + d_ffr_indicator + d_median_all * d_ffr_indicator + cnty_pop + mean_earning | 0 | 0 | 0")), data = main)
+  did4 <- felm(as.formula(paste0(x,  "~" , "d_median_all + d_ffr_indicator + d_median_all * d_ffr_indicator + cnty_pop + mean_earning + ur | 0 | 0 | 0")), data = main)
+  did5 <- felm(as.formula(paste0(x,  "~" , "d_median_all + d_ffr_indicator + d_median_all * d_ffr_indicator + cnty_pop + mean_earning + ur + mean_emp | 0 | 0 | 0")), data = main)
+  did6 <- felm(as.formula(paste0(x,  "~" , "d_median_all + d_ffr_indicator + d_median_all * d_ffr_indicator + cnty_pop + mean_earning + ur + mean_emp + d_msa | 0 | 0 | 0")), data = main)
+  
+  stargazer(did1, did2, did3, did4, did5, did6,
+            type = "html",
+            title = paste0(x),
+            column.labels = c("Base", "Base + FE", "Cntrl 1",  "Cntrl 2",  "Cntrl 3", "Cntrl 4", "Cntrl 5"),
+            covariate.labels = c("Dummy: HHI MC", "Dummy: Before GR", "County Pop", "Earnings", "UR", "Employment", "Dummy: MSA", "DiD Estimator"),
+            # dep.var.labels = paste0(x),
+            out = paste0(LATEX, x, ".html")
+            # no.space = TRUE,  # Removes extra spaces for better formatting
+            # digits = 2       # Rounds coefficients to 2 decimal places
+            )
+  
+  # tinytex::latexmk(paste0(LATEX, x, ".tex"))
+
+  })
+
+
+lapply(outcome_var, function (x) {
+  # x <- outcome_var[1]
+  did1 <- felm(as.formula(paste0(x,  "~" , "d_marketdef_all + d_ffr_indicator + d_marketdef_all * d_ffr_indicator | 0 | 0 | 0 ")), data = main)
+  did2 <- felm(as.formula(paste0(x,  "~" , "d_marketdef_all + d_ffr_indicator + d_marketdef_all * d_ffr_indicator + cnty_pop | 0 | 0 | 0")), data = main)
+  did3 <- felm(as.formula(paste0(x,  "~" , "d_marketdef_all + d_ffr_indicator + d_marketdef_all * d_ffr_indicator + cnty_pop + mean_earning | 0 | 0 | 0")), data = main)
+  did4 <- felm(as.formula(paste0(x,  "~" , "d_marketdef_all + d_ffr_indicator + d_marketdef_all * d_ffr_indicator + cnty_pop + mean_earning + ur | 0 | 0 | 0")), data = main)
+  did5 <- felm(as.formula(paste0(x,  "~" , "d_marketdef_all + d_ffr_indicator + d_marketdef_all * d_ffr_indicator + cnty_pop + mean_earning + ur + mean_emp | 0 | 0 | 0")), data = main)
+  did6 <- felm(as.formula(paste0(x,  "~" , "d_marketdef_all + d_ffr_indicator + d_marketdef_all * d_ffr_indicator + cnty_pop + mean_earning + ur + mean_emp + d_msa | 0 | 0 | 0")), data = main)
+  
+  stargazer(did1, did2, did3, did4, did5, did6,
+            type = "html",
+            title = paste0(x),
+            column.labels = c("Base", "Base + FE", "Cntrl 1",  "Cntrl 2",  "Cntrl 3", "Cntrl 4", "Cntrl 5"),
+            covariate.labels = c("Dummy: HHI MC", "Dummy: Before GR", "County Pop", "Earnings", "UR", "Employment", "Dummy: MSA", "DiD Estimator"),
+            # dep.var.labels = paste0(x),
+            out = paste0(LATEX, x, "_marketdef", ".html")
+            # no.space = TRUE,  # Removes extra spaces for better formatting
+            # digits = 2       # Rounds coefficients to 2 decimal places
+  )
+  
+  # tinytex::latexmk(paste0(LATEX, x, ".tex"))
+  
+})
+
+plm(ln_loan_amount ~  d_median_all + d_ffr_indicator + d_median_all * d_ffr_indicator, data = main, model = "fd")
 
 did1 <- felm(ln_loan_amount ~  d_median_all + d_ffr_indicator + d_median_all * d_ffr_indicator | 0 | 0 | 0, data = main)
-did2 <- felm(ln_loan_amount ~  d_median_all + d_ffr_indicator + d_median_all * d_ffr_indicator | 0 | 0 | 0, data = main)
-did5 <- felm(ln_loan_amount ~  d_median_all + d_ffr_indicator + d_median_all * d_ffr_indicator + cnty_pop + mean_earning + ur| 0 | 0 | 0, data = main)
-did6 <- felm(ln_loan_amount ~  d_median_all + d_ffr_indicator + d_median_all * d_ffr_indicator + cnty_pop + mean_earning + ur + mean_emp | state | 0 | 0, data = main)
-did7 <- felm(ln_loan_amount ~  d_median_all + d_ffr_indicator + d_median_all * d_ffr_indicator + cnty_pop + mean_earning + ur + mean_emp + d_msa| state | 0 | 0, data = main)
+did2 <- felm(ln_loan_amount ~  d_median_all + d_ffr_indicator + d_median_all * d_ffr_indicator + cnty_pop | 0 | 0 | 0, data = main)
+did3 <- felm(ln_loan_amount ~  d_median_all + d_ffr_indicator + d_median_all * d_ffr_indicator + cnty_pop + mean_earning | 0 | 0 | 0, data = main)
+did4 <- felm(ln_loan_amount ~  d_median_all + d_ffr_indicator + d_median_all * d_ffr_indicator + cnty_pop + mean_earning + ur| 0 | 0 | 0, data = main)
+did5 <- felm(ln_loan_amount ~  d_median_all + d_ffr_indicator + d_median_all * d_ffr_indicator + cnty_pop + mean_earning + ur + mean_emp | 0 | 0 | 0, data = main)
+did6 <- felm(ln_loan_amount ~  d_median_all + d_ffr_indicator + d_median_all * d_ffr_indicator + cnty_pop + mean_earning + ur + mean_emp + d_msa| 0 | 0 | 0, data = main)
 
-
-
-stargazer(did_base, did_base_fe, did_base_fe_ctrl1, did_base_fe_ctrl2, type = "text")
-stargazer(did_base_fe_ctrl3,did_base_fe_ctrl4, did_base_fe_ctrl5, type = "text")
-
-stargazer(did1, did2, did3, did4, did5, did6, did7,
+stargazer(did1, did2, did3, did4, did5, did6,
           type = "text",
           title = "Regression Results",
           column.labels = c("Base", "Base + FE", "Cntrl 1",  "Cntrl 2",  "Cntrl 3", "Cntrl 4", "Cntrl 5"),
@@ -46,7 +94,7 @@ stargazer(did1, did2, did3, did4, did5, did6, did7,
           # out = "regression_results.txt",
           # no.space = TRUE,  # Removes extra spaces for better formatting
           # digits = 2       # Rounds coefficients to 2 decimal places
-          )
+)
 
 stargazer(did_base_fe_ctrl3, type = "text")
 summary(did_base_fe_ctrl3)
