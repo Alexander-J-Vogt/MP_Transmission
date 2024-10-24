@@ -180,20 +180,12 @@ check_obs <- check_obs |> distinct(fips, year)
 # Irrelevant warning that is supressed. Warning is related to the data.table package.
 check_obs <- suppressWarnings(check_obs[, ones := 1])
 
-# Check if rows have duplicates 
-# duplicated_rows <- any(duplicated(check_obs[, .(fips, year)]))
-# check_obs[!duplicated(check_obs, by = c("year", "fips"))]
-
 # Determine the counties that are observed over all periods and filter for those counties (USE COMPLETEOBS)
 county_matrix <- dcast(check_obs, fips ~ year, value.var = "ones", fill = 0)
 setDT(county_matrix)
 counties_full_obs <- county_matrix[rowSums(county_matrix[ , 2:ncol(county_matrix), with = FALSE] > 0) == 18]
-uniqueN(combined_sod)
-test1 <- combined_sod[fips %in% counties_full_obs$fips]
-uniqueN(combined_sod)
-test2 <- COMPLETEOBS(data = combined_sod, rowx = "fips", colx = "year")
+combined_sod <- combined_sod[fips %in% counties_full_obs$fips]
 
-identical(test1, test2)
 # Rename variables and sort columns
 setnames(combined_sod, old = c("stnumbr", "cntynumb"), new = c("state", "county"))
 setcolorder(combined_sod,c("year", "fips", "state"))
