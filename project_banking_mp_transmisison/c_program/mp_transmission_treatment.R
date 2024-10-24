@@ -137,7 +137,7 @@ sod <- base::merge(sod, sod_highconc, by = "fips")
 # All Counties
 median_hhi_all <- median(sod_hhi$mean_hhi)
 median_hhi_all_pre <- median(sod_hhi$mean_hhi_pre)
-sod <- sod[, test := ifelse(mean_hhi > median_hhi_all, 1, 0)]
+sod <- sod[, d_median_all := ifelse(mean_hhi > median_hhi_all, 1, 0)]
 sod <- sod[, d_median_all_pre := ifelse(mean_hhi > median_hhi_all_pre, 1, 0)]
 
 # Exclude Counties with HHI = 10000 over all periods
