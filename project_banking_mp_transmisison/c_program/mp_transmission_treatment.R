@@ -40,8 +40,7 @@ sod <- sod[, .(year, fips, state, county, depsumbr, rssdid)]
 setorder(sod, year, fips, rssdid)
 
 # Exclude all irrelevant time periods
-sod <-  sod[inrange(year, 2004 , 2017)]
-
+sod <-  sod[inrange(year, 2004 , 2015)]
 
 
 ## 1.2 Create HHI by county -----------------------------------------------------
@@ -73,34 +72,56 @@ sod <- sod[, .(hhi = sum(bank_market_share_sq)), by = .(fips, year)]
 
 # Create dummy variable for counties with HHI of 10000. Counties with HHI 10000
 # are associated with rural areas like counties in Alaska, Nebraska, South Dakota etc,
-# There are 96 counties, which have this high market concentration over the whole period.
+# There are 106 counties, which have this high market concentration over the whole period.
 
-# Create vector with all counties of a HHI of 10000
-sod_10000 <- sod[hhi == 10000]
-sod_10000 <- unique(sod_10000, by = c("fips", "year"))
+# # Create vector with all counties of a HHI of 10000
+# sod_10000 <- sod[hhi == 10000]
+# sod_10000 <- unique(sod_10000, by = c("fips", "year"))
+# 
+# test <- COMPLETEOBS(data = sod_10000, rowx = "fips", colx = "year")
+# 
+# min <- min(sod_10000$year)
+# max <- max(sod_10000$year)
+# diff <- max - min + 1
+# # Check, which counties have HHI of 1000 over the whole period
+# sod_10000 <- sod_10000[, ones := 1]
+# sod_matrix <- dcast(sod_10000, fips ~ year, value.var = "ones", fill = 0)
+# conc_10000 <- sod_matrix[rowSums(sod_matrix[ , 2:ncol(sod_matrix), with = FALSE] > 0) == diff]
+# cnty_10000 <- sod[sod$fips %in% conc_10000$fips]
+# 
+# # Create dummy variable d_hhi_10000, which contains all counties with a HHI of 
+# # 10000 over the whole period
+# sod <- sod[, d_hhi_10000 := ifelse(sod$fips %in% cnty_10000$fips, 1, 0)]
 
-# Check, which counties have HHI of 1000 over the whole period
-sod_10000 <- sod_10000[, ones := 1]
-sod_matrix <- dcast(sod_10000, fips ~ year, value.var = "ones", fill = 0)
-conc_10000 <- sod_matrix[rowSums(sod_matrix[ , 2:ncol(sod_matrix), with = FALSE] > 0) == 21]
-cnty_10000 <- sod[sod$fips %in% conc_10000$fips]
-
-# Create dummy variable d_hhi_10000, which contains all counties with a HHI of 
-# 10000 over the whole period
-sod <- sod[, d_hhi_10000 := ifelse(sod$fips %in% cnty_10000$fips, 1, 0)]
-
-# Calculate the mean HHI for each county over the period 2004 to 2021
-# Contains observations on county-level (no annual data!)
+# Calculate the mean HHI for each county over the period 2004 to 2017
+# Result: Contains observations on county-level (no annual data!)
 sod_hhi <- sod[, .(mean_hhi = mean(hhi)), by = fips]
+sod_hhi_pre <- sod[year >= 2004 & year <= 2008, .(mean_hhi_pre = mean(hhi)), by = fips]
+sod_hhi <- merge(sod_hhi, sod_hhi_pre, by = c("fips"))
+sod_hhi <- sod_hhi[, d_hhi_max := ifelse(mean_hhi == 10000, 1, 0)]
+sod_hhi <- sod_hhi[, d_hhi_max_pre := ifelse(mean_hhi_pre == 10000, 1, 0)]
+
+if (DEBUG) {
+  ggplot(sod_hhi) +
+    geom_density(aes(x = mean_hhi), color = "blue") +
+    geom_density(aes(x = mean_hhi_pre), color = "red") +
+    theme_minimal() +
+    labs(
+      title = "Density Plot of mean_hhi and mean_hhi_pre",
+      x = "HHI Values",
+      y = "Density"
+    )
+}
+
 
 # Create a dummy variable for each county that has a HHI of 10000 over all periods
-sod_hhi <- sod_hhi[, d_hhi_10000 := ifelse(sod_hhi$fips %in% cnty_10000$fips, 1, 0)]
+# sod_hhi <- sod_hhi[, d_hhi_10000 := ifelse(sod_hhi$fips %in% cnty_10000$fips, 1, 0)]
 
-# Create a dataset equal to sod_hhi but with counties with HHI = 10000 on county-level
-sod_hhi_rest <- sod_hhi[d_hhi_10000 == 0]
+# # Create a dataset equal to sod_hhi but with counties with HHI = 10000 on county-level
+# sod_hhi_rest <- sod_hhi[d_hhi_10000 == 0]
 
-# Calculate the mean HHI for each county in the main SOD dataset
-sod <- sod[, mean_hhi := mean(hhi), by = fips]
+# # Calculate the mean HHI for each county in the main SOD dataset
+# sod <- sod[, mean_hhi := mean(hhi), by = fips]
 
 # 1.4 Create Treatment/Control Dummy Variables ----------------------------------
 
@@ -175,8 +196,8 @@ ffr_data <- ffr_data[, d_ffr_last := as.integer(ifelse(ffr_last < 2, 1, 0))]
 # Great Recession unfolded.
 ffr_data <- ffr_data[, d_ffr_indicator := as.integer(ifelse(year >= 2008, 1, 0))]
 
-# Restrict the data to the period 
-ffr_data <- ffr_data[inrange(year, 2004, 2020)]
+# # Restrict the data to the period 
+# ffr_data <- ffr_data[inrange(year, 2004, 2020)]
 
 # Reduce dataset to yearly dataset
 ffr_data <- unique(ffr_data, by = c("year"))
