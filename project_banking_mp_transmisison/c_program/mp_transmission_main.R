@@ -24,7 +24,7 @@ gc()
 
 # Determine the period
 start <- 2004
-end <- 2017
+end <- 2016
 diff_year <- end - start + 1
 
 
@@ -52,6 +52,7 @@ banks_data <- banks_data[between(year, start, end)]
 # complete_banks_data <- complete_banks_data[fips %in% counties_full_obs$fips]
 
 complete_banks_data <- COMPLETEOBS(data = banks_data, rowx = "fips", colx = "year")
+
 
 # 2. Dataset with Mortgages of all Financial Institutions ======================
 
