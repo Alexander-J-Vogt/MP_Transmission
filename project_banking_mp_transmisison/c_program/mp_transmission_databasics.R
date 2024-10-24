@@ -181,8 +181,8 @@ check_obs <- check_obs |> distinct(fips, year)
 check_obs <- suppressWarnings(check_obs[, ones := 1])
 
 # Check if rows have duplicates 
-duplicated_rows <- any(duplicated(check_obs[, .(fips, year)]))
-check_obs[!duplicated(check_obs, by = c("year", "fips"))]
+# duplicated_rows <- any(duplicated(check_obs[, .(fips, year)]))
+# check_obs[!duplicated(check_obs, by = c("year", "fips"))]
 
 # Determine the counties that are observed over all periods and filter for those counties (USE COMPLETEOBS)
 county_matrix <- dcast(check_obs, fips ~ year, value.var = "ones", fill = 0)
