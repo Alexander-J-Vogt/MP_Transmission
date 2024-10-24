@@ -71,6 +71,11 @@ sod_temp <- sod_temp[str_detect(sod_temp, "^sod")]
 years <- as.numeric(str_extract(sod_temp, "\\d{4}"))
 sod_temp <- sod_temp[years >= 1994 & years <= 2017]
 
+DEBUG <- F
+if (DEBUG) {
+  sod_temp <- sod_temp[years >= 2004 & years <= 2014] 
+}
+
 # Create empty list in which all SOD datasets will be saved
 combined_sod <- list()
 
@@ -118,7 +123,7 @@ combined_sod <- combined_sod[, .(year, stcntybr, uninumbr, depsumbr, insured,
                                  specdesc, sims_acquired_date, msabr, bkmo,
                                  stnumbr, cntynumb, rssdid)]
 
-# Clean variables depsumbr and sims_aquired_date from all special characters
+# Clean variables depsumbr and sims_aquired_date from all special characters (This part can be potentially deleted)
 combined_sod <- combined_sod[, depsumbr := gsub(",", "", depsumbr)]
 combined_sod <- combined_sod[, sims_acquired_date := 
                                ifelse(nchar(sims_acquired_date) > 1,
@@ -141,7 +146,7 @@ combined_sod <- combined_sod[, specdesc := gsub("\\$", "", specdesc)]
 # Restrict the dataset the year 2000 to 2020
 combined_sod <- combined_sod[between(year, 2000, 2017)]
 
-# Create fips-code by combining the state and county code
+# Create fips-code by combining the state and county code (USE FIPSCREATOR!)
 combined_sod <- combined_sod[stnumbr != "" & cntynumb != ""]
 combined_sod <- combined_sod[, stnumbr := ifelse(nchar(stnumbr) == 1, paste0("0", stnumbr), stnumbr)]
 combined_sod <- combined_sod[, cntynumb := ifelse(nchar(cntynumb) == 2, paste0("0", cntynumb), cntynumb)]
@@ -177,13 +182,25 @@ check_obs <- suppressWarnings(check_obs[, ones := 1])
 duplicated_rows <- any(duplicated(check_obs[, .(fips, year)]))
 check_obs[!duplicated(check_obs, by = c("year", "fips"))]
 
-# Determine the counties that are observed over all periods and filter for those counties
+# Determine the counties that are observed over all periods and filter for those counties (USE COMPLETEOBS)
 county_matrix <- dcast(check_obs, fips ~ year, value.var = "ones", fill = 0)
 setDT(county_matrix)
 counties_full_obs <- county_matrix[rowSums(county_matrix[ , 2:ncol(county_matrix), with = FALSE] > 0) == 18]
 uniqueN(combined_sod)
 combined_sod <- combined_sod[fips %in% counties_full_obs$fips]
 uniqueN(combined_sod)
+
+# Rename variables and sort columns
+setnames(combined_sod, old = c("stnumbr", "cntynumb"), new = c("state", "county"))
+setcolorder(combined_sod,c("year", "fips", "state"))
+combined_sod[, stcntybr := NULL]
+
+# 
+# if (DEBUG) {
+#   setDT(combined_sod)
+#   sod_mortgage <- combined_sod[SPECDESC == "MORTGAGE LENDING"]
+#   sod_mortgage <- sod_mortgage["YEAR", ]
+# }
 ## 2.4 Save datasets  ----------------------------------------------------------
 
 # Create two different datasets
@@ -193,8 +210,9 @@ sod_banks <- sod_banks[, insured := NULL]
 
 # ii. All available financial institutions
 sod_all <- combined_sod
+sod_all[, insured := NULL]
 
-# Save Combined (raw) SOD dataset
+# Save Combined (raw)NULL# Save Combined (raw) SOD dataset
 SAVE(dfx = sod_banks, namex = "banks_sod")
 SAVE(dfx = sod_all, namex =  "all_sod")
 
