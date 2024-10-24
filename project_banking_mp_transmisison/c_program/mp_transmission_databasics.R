@@ -152,7 +152,7 @@ combined_sod <- combined_sod[, cntynumb := ifelse(nchar(cntynumb) == 2, paste0("
 combined_sod <- combined_sod[, cntynumb := ifelse(nchar(cntynumb) == 1, paste0("00", cntynumb), cntynumb)]
 combined_sod <- combined_sod[, fips := paste0(stnumbr, cntynumb)]
 
-# test <- combined_sod
+test <- combined_sod
 combined_sod <- test
 
 # Excluding the following US territories as they are not relevant for the analysis: 
@@ -177,8 +177,7 @@ check_obs <- combined_sod[, .(fips, year, rssdid)]
 check_obs <- check_obs |> distinct(fips, year, rssdid)
 check_obs <- check_obs |> distinct(fips, year)
 
-
-# Irrelevant warning that is supresed. Warning is related to the data.table package.
+# Irrelevant warning that is supressed. Warning is related to the data.table package.
 check_obs <- suppressWarnings(check_obs[, ones := 1])
 
 # Check if rows have duplicates 
@@ -190,9 +189,11 @@ county_matrix <- dcast(check_obs, fips ~ year, value.var = "ones", fill = 0)
 setDT(county_matrix)
 counties_full_obs <- county_matrix[rowSums(county_matrix[ , 2:ncol(county_matrix), with = FALSE] > 0) == 18]
 uniqueN(combined_sod)
-combined_sod <- combined_sod[fips %in% counties_full_obs$fips]
+test1 <- combined_sod[fips %in% counties_full_obs$fips]
 uniqueN(combined_sod)
+test2 <- COMPLETEOBS(data = combined_sod, rowx = "fips", colx = "year")
 
+identical(test1, test2)
 # Rename variables and sort columns
 setnames(combined_sod, old = c("stnumbr", "cntynumb"), new = c("state", "county"))
 setcolorder(combined_sod,c("year", "fips", "state"))
