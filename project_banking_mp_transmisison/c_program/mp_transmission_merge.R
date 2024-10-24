@@ -45,6 +45,7 @@ setDT(treatment_data)
 # Loading control data from the control scripts
 controls_data <- LOAD(dfinput = "mp_transmission_control")
 setDT(controls_data)
+controls_data <- controls_data[, state := NULL]
 
 # 2. Commercial Banks ==========================================================
 
