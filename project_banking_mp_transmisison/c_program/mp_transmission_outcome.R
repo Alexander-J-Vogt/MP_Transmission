@@ -38,7 +38,7 @@ gc()
 
 # List all merged files
 hmda_files <- list.files(paste0(TEMP, "/") , pattern = "merge")
-hmda_files <- hmda_files[1:3]
+# hmda_files <- hmda_files[1:3]
 start_time <- Sys.time()
 # Basic Data Cleaning for two possible filters
 # a) Filter for all Commercial Banks
@@ -49,7 +49,7 @@ mortgages_banks <- lapply(hmda_files, COUNTYLEVEL, instfilter = TRUE)
 s# b) Includes all Financial Institutions
 # This dataset is collapses all loans within a county independently of the 
 # of financial institution. 
-mortgages_all <- lapply(hmda_files, COUNTYLEVEL, instfilter = FALSE)
+# mortgages_all <- lapply(hmda_files, COUNTYLEVEL, instfilter = FALSE)
 end_time <- Sys.time()
 print(end_time - start_time)
 
@@ -74,14 +74,20 @@ hmda_banks[, lead_wtd_loan_amount := shift(wtd_loan_amount, type = "lead"), by =
 hmda_banks[, lead_ln_loan_amount := shift(ln_loan_amount, type = "lead"), by = fips]
 hmda_banks[, lead_ln_wtd_loan_amount := shift(ln_wtd_loan_amount, type = "lead"), by = fips]
 
+# Select relevant variables
+hmda_banks[, c("cnty_pop", "us_pop", "wt_cnty_pop") := NULL]
+setcolorder(hmda_banks, c("year", "fips", "state"))
+
+# Drop observation in the year 2017, due to lead-lag
+# hmda_banks[year != 2017]
 
 
 # Exclude all missing observation from hmda_all
-hmda_all <- hmda_all[!is.na(total_amount_loan)]
+# hmda_all <- hmda_all[!is.na(total_amount_loan)]
 
 # Save
 SAVE(dfx = hmda_banks, namex = "hmda_banks")
-SAVE(dfx = hmda_all, namex = "hmda_all")
+# SAVE(dfx = hmda_all, namex = "hmda_all")
 
 
 ########################## ENDE ###############################################+
