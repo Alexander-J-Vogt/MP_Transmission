@@ -110,8 +110,11 @@ if (DEBUG) {
     )
 }
 
+# Merge the mean_hhi of each county, the dummy for perfect market concentration
+sod_highconc <- sod_hhi[, c("fips", "mean_hhi", "d_hhi_max", "d_hhi_max_pre")]
+sod <- base::merge(sod, sod_highconc, by = "fips")
 
-# Create a dummy variable for each county that has a HHI of 10000 over all periods
+# Create a dummy variable for each county that has a HHIby.x = # Create a dummy variable for each county that has a HHI of 10000 over all periods
 # sod_hhi <- sod_hhi[, d_hhi_10000 := ifelse(sod_hhi$fips %in% cnty_10000$fips, 1, 0)]
 
 # # Create a dataset equal to sod_hhi but with counties with HHI = 10000 on county-level
@@ -134,42 +137,42 @@ if (DEBUG) {
 # All Counties
 median_hhi_all <- median(sod_hhi$mean_hhi)
 median_hhi_all_pre <- median(sod_hhi$mean_hhi_pre)
-sod <- sod[, d_median_all := ifelse(fips %in% sod_hhi[mean_hhi > median_hhi_all, fips], 1, 0)]
-sod <- sod[, d_median_all_pre := ifelse(fips %in% sod_hhi[mean_hhi > median_hhi_all_pre, fips], 1, 0)]
+sod <- sod[, test := ifelse(mean_hhi > median_hhi_all, 1, 0)]
+sod <- sod[, d_median_all_pre := ifelse(mean_hhi > median_hhi_all_pre, 1, 0)]
 
 # Exclude Counties with HHI = 10000 over all periods
 median_hhi_rest <- median(sod_hhi[d_hhi_max == 0,]$mean_hhi)
 median_hhi_rest_pre <- median(sod_hhi[d_hhi_max == 0,]$mean_hhi_pre)
-sod <- sod[, d_median_rest := ifelse(fips %in% sod_hhi[mean_hhi > median_hhi_rest], 1, 0)]
-sod <- sod[, d_median_rest_pre := ifelse(fips %in% sod_hhi[mean_hhi > median_hhi_rest_pre], 1, 0)]
+sod <- sod[, d_median_rest := ifelse(mean_hhi > median_hhi_rest, 1, 0)]
+sod <- sod[, d_median_rest_pre := ifelse(mean_hhi > median_hhi_rest_pre, 1, 0)]
 
 # b) Threshold: Mean
 # All Counties
 mean_hhi_all <- mean(sod_hhi$mean_hhi)
 mean_hhi_all_pre <- mean(sod_hhi$mean_hhi_pre)
-sod <- sod[, d_mean_all := ifelse(fips %in% sod_hhi[mean_hhi > mean_hhi_all, fips], 1, 0)]
-sod <- sod[, d_mean_all_pre := ifelse(fips %in% sod_hhi[mean_hhi > mean_hhi_all_pre, fips], 1, 0)]
+sod <- sod[, d_mean_all := ifelse(mean_hhi > mean_hhi_all, 1, 0)]
+sod <- sod[, d_mean_all_pre := ifelse(mean_hhi > mean_hhi_all_pre, 1, 0)]
 
 # Exclude Counties with HHI = 10000 over all periods
 mean_hhi_rest <- median(sod_hhi[d_hhi_max == 0,]$mean_hhi)
 mean_hhi_rest_pre <- median(sod_hhi[d_hhi_max == 0,]$mean_hhi_pre)
-sod <- sod[, d_mean_rest := ifelse(fips %in% sod_hhi[mean_hhi > mean_hhi_rest], 1, 0)]
-sod <- sod[, d_mean_rest_pre := ifelse(fips %in% sod_hhi[mean_hhi > mean_hhi_rest_pre], 1, 0)]
+sod <- sod[, d_mean_rest := ifelse(mean_hhi > mean_hhi_rest, 1, 0)]
+sod <- sod[, d_mean_rest_pre := ifelse(mean_hhi > mean_hhi_rest_pre, 1, 0)]
 
-# c) Threshold: Market Defintion of a highly-concentrated market (HHI > 2500)
+# c) Threshold: Market Definition of a highly-concentrated market (HHI > 2500)
 # All counties
 sod <- sod[, d_marketdef_all := ifelse(mean_hhi > 2500, 1, 0)]
 
 # Exclude counties with HHI = 10000 over all periods
-sod <-  sod[, d_marketdef_rest := ifelse((mean_hhi > 2500) & (d_hhi_10000 == 0), 1, 0)]
+sod <- sod[, d_marketdef_rest := ifelse((mean_hhi > 2500) & (d_hhi_max == 0), 1, 0)]
 
 # d) Threshold: 70 percentile 
 q70_hhi_all <- quantile(sod_hhi$mean_hhi, probs = 0.70)
-sod <- sod[, d_q70_all := ifelse(fips %in% sod_hhi[mean_hhi > q70_hhi_all, fips], 1, 0)]
+sod <- sod[, d_q70_all := ifelse(mean_hhi > q70_hhi_all, 1, 0)]
 
 # Exclude Counties with HHI = 10000 over all periods
 q70_hhi_rest <- quantile(sod_hhi$mean_hhi, probs = 0.70)
-sod <- sod[, d_q70_rest := ifelse(fips %in% sod_hhi_rest[mean_hhi > q70_hhi_rest], 1, 0)]
+sod <- sod[, d_q70_rest := ifelse(mean_hhi > q70_hhi_rest, 1, 0)]
 
 # Save dataset
 SAVE(dfx = sod, name = "SOD_final")
