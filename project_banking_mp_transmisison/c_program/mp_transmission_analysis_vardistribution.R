@@ -34,6 +34,8 @@ setDT(main_banks_data)
 # Check the number of counties of the united states
 state_counties <- fips_data[, .N, by = .(state_code)]
 
+setnames(main_banks_data, old = "state.x", new = "state")
+
 # Number of counties per state in the main dataset with all commercial banks
 banks_state_cnty <- main_banks_data[, c("fips", "state")]
 banks_state_cnty <- unique(banks_state_cnty)
@@ -45,7 +47,7 @@ state_name <- unique(state_name)
 
 # Visualized the attrition of the counties lost by only including states that 
 # are observed over the whole period
-ggplot() +
+attrition_county <- ggplot() +
   # First geom_bar for state_counties dataset
   geom_bar(data = state_counties, aes(x = state_code, y = N), stat = "identity", fill = "red", alpha = 0.7) +
   
@@ -56,6 +58,10 @@ ggplot() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +  # Rotate x-axis labels
   scale_x_discrete() +  # Ensure all x-axis labels are displayed
   scale_y_continuous(breaks = seq(0, max(state_counties$N), by = 25))
+
+filename <- paste0("mean_value_plot_", i, ".png")
+ggsave(filename = paste0(FIGURE, "attrition_county",".png") , plot = attrition_county, width = 4, height = 4)
+
 
 n_cnty <- sum(banks_state_cnty$N)
 n <- sum(state_counties$N)
@@ -159,3 +165,16 @@ mean_value_plots <- lapply(names(descriptive_stats_list), function(varname) {
 for (plot in mean_value_plots) {
   print(plot)
 }
+
+# Loop through each plot in the mean_value_plots list
+for (i in seq_along(mean_value_plots)) {
+  # Get the plot object
+  plot <- mean_value_plots[[i]]
+  
+  # Create a filename for each plot (e.g., "mean_value_plot_1.pdf", "mean_value_plot_2.pdf", etc.)
+  filename <- paste0("mean_value_plot_", i, ".png")
+  
+  # Save the plot using ggsave
+  ggsave(filename = paste0(FIGURE, filename), plot = plot, device = "png", width = 10, height = 6)
+}
+
