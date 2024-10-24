@@ -30,11 +30,6 @@ gc()
 sod <- LOAD(dfinput = "banks_sod", dfextension = ".rda")
 setDT(sod)
 
-DEBUBG <- F
-if (DEBUG) {
-  sod <- sod[specdesc == "mortgage_lending"]
-}
-
 # Select the relevant variables for creating HHI by county-level
 sod <- sod[, .(year, fips, state, county, depsumbr, rssdid)]
 setorder(sod, year, fips, rssdid)
@@ -98,6 +93,8 @@ sod <- sod[, .(hhi = sum(bank_market_share_sq)), by = .(fips, year)]
 sod_hhi <- sod[, .(mean_hhi = mean(hhi)), by = fips]
 sod_hhi_pre <- sod[year >= 2004 & year <= 2008, .(mean_hhi_pre = mean(hhi)), by = fips]
 sod_hhi <- merge(sod_hhi, sod_hhi_pre, by = c("fips"))
+
+# Creating dummy variable for perfect market concentration
 sod_hhi <- sod_hhi[, d_hhi_max := ifelse(mean_hhi == 10000, 1, 0)]
 sod_hhi <- sod_hhi[, d_hhi_max_pre := ifelse(mean_hhi_pre == 10000, 1, 0)]
 
@@ -136,20 +133,28 @@ if (DEBUG) {
 # a) Threshold: Median
 # All Counties
 median_hhi_all <- median(sod_hhi$mean_hhi)
+median_hhi_all_pre <- median(sod_hhi$mean_hhi_pre)
 sod <- sod[, d_median_all := ifelse(fips %in% sod_hhi[mean_hhi > median_hhi_all, fips], 1, 0)]
+sod <- sod[, d_median_all_pre := ifelse(fips %in% sod_hhi[mean_hhi > median_hhi_all_pre, fips], 1, 0)]
 
 # Exclude Counties with HHI = 10000 over all periods
-median_hhi_rest <- median(sod_hhi_rest$mean_hhi)
-sod <- sod[, d_median_rest := ifelse(fips %in% sod_hhi_rest[mean_hhi > median_hhi_rest], 1, 0)]
+median_hhi_rest <- median(sod_hhi[d_hhi_max == 0,]$mean_hhi)
+median_hhi_rest_pre <- median(sod_hhi[d_hhi_max == 0,]$mean_hhi_pre)
+sod <- sod[, d_median_rest := ifelse(fips %in% sod_hhi[mean_hhi > median_hhi_rest], 1, 0)]
+sod <- sod[, d_median_rest_pre := ifelse(fips %in% sod_hhi[mean_hhi > median_hhi_rest_pre], 1, 0)]
 
 # b) Threshold: Mean
 # All Counties
 mean_hhi_all <- mean(sod_hhi$mean_hhi)
+mean_hhi_all_pre <- mean(sod_hhi$mean_hhi_pre)
 sod <- sod[, d_mean_all := ifelse(fips %in% sod_hhi[mean_hhi > mean_hhi_all, fips], 1, 0)]
+sod <- sod[, d_mean_all_pre := ifelse(fips %in% sod_hhi[mean_hhi > mean_hhi_all_pre, fips], 1, 0)]
 
 # Exclude Counties with HHI = 10000 over all periods
-mean_hhi_rest <- mean(sod_hhi_rest$mean_hhi)
-sod <- sod[, d_mean_rest := ifelse(fips %in% sod_hhi_rest[mean_hhi > mean_hhi_rest], 1, 0)]
+mean_hhi_rest <- median(sod_hhi[d_hhi_max == 0,]$mean_hhi)
+mean_hhi_rest_pre <- median(sod_hhi[d_hhi_max == 0,]$mean_hhi_pre)
+sod <- sod[, d_mean_rest := ifelse(fips %in% sod_hhi[mean_hhi > mean_hhi_rest], 1, 0)]
+sod <- sod[, d_mean_rest_pre := ifelse(fips %in% sod_hhi[mean_hhi > mean_hhi_rest_pre], 1, 0)]
 
 # c) Threshold: Market Defintion of a highly-concentrated market (HHI > 2500)
 # All counties
@@ -167,14 +172,8 @@ q70_hhi_rest <- quantile(sod_hhi$mean_hhi, probs = 0.70)
 sod <- sod[, d_q70_rest := ifelse(fips %in% sod_hhi_rest[mean_hhi > q70_hhi_rest], 1, 0)]
 
 # Save dataset
-if (DEBUG) {
-  SAVE(dfx = sod, name = "sod_mortgage")
-}
-
-
-if (!DEBUG) {
 SAVE(dfx = sod, name = "SOD_final")
-}
+
 
 # 2. Federal Funds Rate ========================================================
 
@@ -211,13 +210,9 @@ SAVE(dfx = ffr_data, namex = "ffr_annual")
 treatment_data <- left_join(sod, ffr_data, by = c("year"))
 
 # Save dataset
-if (!DEBUG) {
 SAVE(treatment_data, namex = MAINNAME)
-}
 
-if (DEBUG) {
-  SAVE(treatment_data, namex = paste0(MAINNAME, "_mortgage"))
-}
+
 ########################## ENDE ###############################################+
 
 
