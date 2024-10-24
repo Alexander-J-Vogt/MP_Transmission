@@ -46,7 +46,7 @@ VISUALSEP <- "*********************************************"
 
 ########################
 # ensure max RAM allocation to R
-memory.limit(size=32000) #guessed for 32 RAM
+# memory.limit(size=16000) #guessed for 32 RAM
 
 ########################
 #ensure in mainfolder there exists a subfolder Temp 

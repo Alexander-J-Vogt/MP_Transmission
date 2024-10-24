@@ -120,16 +120,15 @@ for (i in seq_along(combined_sod)) {
 
 # Select the variables of interest
 combined_sod <- combined_sod[, .(year, stcntybr, uninumbr, depsumbr, insured, 
-                                 specdesc, sims_acquired_date, msabr, bkmo,
-                                 stnumbr, cntynumb, rssdid)]
+                                 specdesc, msabr, bkmo, stnumbr, cntynumb, rssdid)]
 
 # Clean variables depsumbr and sims_aquired_date from all special characters (This part can be potentially deleted)
 combined_sod <- combined_sod[, depsumbr := gsub(",", "", depsumbr)]
-combined_sod <- combined_sod[, sims_acquired_date := 
-                               ifelse(nchar(sims_acquired_date) > 1,
-                                      substr(sims_acquired_date, nchar(sims_acquired_date) - 3, 
-                                             nchar(sims_acquired_date)), 
-                                      sims_acquired_date)]
+# combined_sod <- combined_sod[, sims_acquired_date := 
+#                                ifelse(nchar(sims_acquired_date) > 1,
+#                                       substr(sims_acquired_date, nchar(sims_acquired_date) - 3, 
+#                                              nchar(sims_acquired_date)), 
+#                                       sims_acquired_date)]
 
 # Format the relevant variables to integers
 columns_to_convert <- c("year", "depsumbr", "msabr", "bkmo")
@@ -144,7 +143,7 @@ combined_sod <- combined_sod[, specdesc := gsub("-", "_", specdesc)]
 combined_sod <- combined_sod[, specdesc := gsub("\\$", "", specdesc)]
 
 # Restrict the dataset the year 2000 to 2020
-combined_sod <- combined_sod[between(year, 2000, 2017)]
+# combined_sod <- combined_sod[between(year, 2000, 2017)]
 
 # Create fips-code by combining the state and county code (USE FIPSCREATOR!)
 combined_sod <- combined_sod[stnumbr != "" & cntynumb != ""]
@@ -153,7 +152,7 @@ combined_sod <- combined_sod[, cntynumb := ifelse(nchar(cntynumb) == 2, paste0("
 combined_sod <- combined_sod[, cntynumb := ifelse(nchar(cntynumb) == 1, paste0("00", cntynumb), cntynumb)]
 combined_sod <- combined_sod[, fips := paste0(stnumbr, cntynumb)]
 
-test <- combined_sod
+# test <- combined_sod
 combined_sod <- test
 
 # Excluding the following US territories as they are not relevant for the analysis: 
@@ -168,12 +167,16 @@ load(paste0(TEMP, "/", "fips_data.rda"))
 notvalid <- setdiff(fips_data$fips, combined_sod$fips)
 combined_sod <- combined_sod[!(fips %in% notvalid)]
 
+# Restrict the dataset the year 2000 to 2017
+combined_sod <- combined_sod[year >= 2000 & year <= 2017]
+
 # Only fips-codes, which are observed over the period of 2000 to 2020 are included
 # in the dataset.
 # Collapse data to county-year level
 check_obs <- combined_sod[, .(fips, year, rssdid)]
 check_obs <- check_obs |> distinct(fips, year, rssdid)
 check_obs <- check_obs |> distinct(fips, year)
+
 
 # Irrelevant warning that is supresed. Warning is related to the data.table package.
 check_obs <- suppressWarnings(check_obs[, ones := 1])
