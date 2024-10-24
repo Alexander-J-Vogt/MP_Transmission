@@ -30,12 +30,19 @@ gc()
 sod <- LOAD(dfinput = "banks_sod", dfextension = ".rda")
 setDT(sod)
 
+DEBUBG <- F
+if (DEBUG) {
+  sod <- sod[specdesc == "mortgage_lending"]
+}
+
 # Select the relevant variables for creating HHI by county-level
-sod <- sod[, .(year, fips, depsumbr, rssdid)]
+sod <- sod[, .(year, fips, state, county, depsumbr, rssdid)]
 setorder(sod, year, fips, rssdid)
 
 # Exclude all irrelevant time periods
 sod <-  sod[inrange(year, 2004 , 2017)]
+
+
 
 ## 1.2 Create HHI by county -----------------------------------------------------
 
@@ -130,17 +137,23 @@ sod <- sod[, d_marketdef_all := ifelse(mean_hhi > 2500, 1, 0)]
 # Exclude counties with HHI = 10000 over all periods
 sod <-  sod[, d_marketdef_rest := ifelse((mean_hhi > 2500) & (d_hhi_10000 == 0), 1, 0)]
 
-# d) Theshold: 70 percentile 
+# d) Threshold: 70 percentile 
 q70_hhi_all <- quantile(sod_hhi$mean_hhi, probs = 0.70)
-sod <- sod[, d_qu70_all := ifelse(fips %in% sod_hhi[mean_hhi > q70_hhi_all, fips], 1, 0)]
+sod <- sod[, d_q70_all := ifelse(fips %in% sod_hhi[mean_hhi > q70_hhi_all, fips], 1, 0)]
 
 # Exclude Counties with HHI = 10000 over all periods
 q70_hhi_rest <- quantile(sod_hhi$mean_hhi, probs = 0.70)
-sod <- sod[, d_q79_rest := ifelse(fips %in% sod_hhi_rest[mean_hhi > q70_hhi_rest], 1, 0)]
+sod <- sod[, d_q70_rest := ifelse(fips %in% sod_hhi_rest[mean_hhi > q70_hhi_rest], 1, 0)]
 
 # Save dataset
-SAVE(dfx = sod, name = "SOD_final")
+if (DEBUG) {
+  SAVE(dfx = sod, name = "sod_mortgage")
+}
 
+
+if (!DEBUG) {
+SAVE(dfx = sod, name = "SOD_final")
+}
 
 # 2. Federal Funds Rate ========================================================
 
@@ -169,7 +182,7 @@ ffr_data <- ffr_data[inrange(year, 2004, 2020)]
 ffr_data <- unique(ffr_data, by = c("year"))
 
 # Save dataset
-SAVE(dfx = ffr_data, namex = "ffr")
+SAVE(dfx = ffr_data, namex = "ffr_annual")
 
 # 3. Combine Federal Funds Rate & SOD ==========================================
 
@@ -177,9 +190,13 @@ SAVE(dfx = ffr_data, namex = "ffr")
 treatment_data <- left_join(sod, ffr_data, by = c("year"))
 
 # Save dataset
+if (!DEBUG) {
 SAVE(treatment_data, namex = MAINNAME)
+}
 
-
+if (DEBUG) {
+  SAVE(treatment_data, namex = paste0(MAINNAME, "_mortgage"))
+}
 ########################## ENDE ###############################################+
 
 
