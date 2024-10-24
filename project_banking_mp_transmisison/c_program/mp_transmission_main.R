@@ -24,7 +24,7 @@ gc()
 
 # Determine the period
 start <- 2004
-end <- 2016
+end <- 2015
 diff_year <- end - start + 1
 
 
@@ -35,7 +35,7 @@ banks_data <- LOAD(dfinput = "banks_data_joined")
 setDT(banks_data)
 
 # Subset for the relevant period
-banks_data <- banks_data[between(year, start, end)]
+banks_data <- banks_data[inrange(year, start, end)]
 
 # # Only allow for observation with no missings
 # complete_banks_data <- banks_data[complete.cases(banks_data),]
