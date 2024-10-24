@@ -549,5 +549,20 @@ earnings_data <- earnings_data[, year := as.integer(year)]
 # SAVE
 SAVE(dfx = earnings_data, namex = "qwi_earnings")
 
+# 8. GDP of the U.S. ===========================================================
+
+# Import data on GDP
+gdp_data <- read.csv(paste0(A, "d_fred/", "GDP.csv"))
+setDT(gdp_data)
+
+setnames(gdp_data, old = c("DATE", "GDP"), new = c("year", "gdp"))
+
+gdp_data <- gdp_data[, year := year(year)]
+gdp_data <- gdp_data[, gdp := as.numeric(gdp)]
+gdp_data <- gdp_data[, gdp_lag := shift(gdp, type = "lag")]
+
+gdp_data <- gdp_data[, gdp_growth := (gdp - gdp_lag) / gdp_lag * 100]
+
+
 
 ########################## ENDE ###############################################+
