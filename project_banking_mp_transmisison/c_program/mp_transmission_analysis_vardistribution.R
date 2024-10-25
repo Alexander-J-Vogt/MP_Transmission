@@ -199,3 +199,23 @@ descriptive_stats <- lapply(key_var, function(var) {
 })
 
 names(descriptive_stats) <- key_var
+
+# Correlation of variables by year and pooled ==================================
+
+# Calculate correlation tables for all variables in key_var for each year and pooled correlation
+correlation_tables <- lapply(unique(des_stats$year), function(yr) {
+  main_year <- des_stats[year == yr, ..key_var]
+  cor(main_year, use = "complete.obs")
+})
+
+# Name the list elements based on year
+names(correlation_tables) <- paste0("year_", unique(des_stats$year))
+
+# Pooled correlation table across all years
+pooled_correlation <- cor(des_stats[, ..key_var], use = "complete.obs")
+
+# Print the pooled correlation table
+print(pooled_correlation)
+
+# Optional: Visualize the pooled correlation matrix
+corrplot(pooled_correlation, method = "number", type = "lower", tl.col = "black", tl.srt = 45, title = "Pooled Correlation Matrix")
