@@ -31,7 +31,7 @@ sod <- LOAD(dfinput = "banks_sod", dfextension = ".rda")
 setDT(sod)
 
 # Restrict to the relevant variables
-sod <- sod[, .(year, fips, sims_acquired_date, msabr, bkmo)]
+sod <- sod[, .(year, fips, msabr, bkmo)]
 
 # Number of Main offices in a county:
 # Create dummy whether county is has the main office or not (bkmo)
@@ -77,6 +77,11 @@ controls_sod <- LOAD(dfinput = "controls_sod")
 merged_data <- left_join(pop_cnty, controls_sod, by = c("fips", "year"))
 merged_data <- left_join(merged_data, qwi_earnings, by = c("fips", "year"))
 merged_data <- left_join(merged_data, ur_cny, by = c("fips", "year"))
+
+
+# Creating share of employment in each county and year
+setDT(merged_data)
+merged_data[, emp_rate := mean_emp / cnty_pop]
 
 # SAVE
 SAVE(dfx = merged_data)
