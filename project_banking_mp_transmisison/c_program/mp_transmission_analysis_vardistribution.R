@@ -34,7 +34,7 @@ setDT(main_banks_data)
 # Check the number of counties of the united states
 state_counties <- fips_data[, .N, by = .(state_code)]
 
-setnames(main_banks_data, old = "state.x", new = "state")
+# setnames(main_banks_data, old = "state.x", new = "state")
 
 # Number of counties per state in the main dataset with all commercial banks
 banks_state_cnty <- main_banks_data[, c("fips", "state")]
@@ -49,10 +49,10 @@ state_name <- unique(state_name)
 # are observed over the whole period
 attrition_county <- ggplot() +
   # First geom_bar for state_counties dataset
-  geom_bar(data = state_counties, aes(x = state_code, y = N), stat = "identity", fill = "red", alpha = 0.7) +
+  geom_bar(data = state_counties, aes(x = state_code, y = N), stat = "identity", fill = "red", alpha = 1) +
   
   # Second geom_bar for banks_dstate dataset
-  geom_bar(data = banks_state_cnty, aes(x = state, y = N), stat = "identity", fill = "blue", alpha = 0.5, position = "dodge") +
+  geom_bar(data = banks_state_cnty, aes(x = state, y = N), stat = "identity", fill = "blue", alpha = 1, position = "dodge") +
   theme_minimal() +
   labs(title = "Number of Counties by State", x = "State", y = "Number of Counties") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +  # Rotate x-axis labels
@@ -178,3 +178,24 @@ for (i in seq_along(mean_value_plots)) {
   ggsave(filename = paste0(FIGURE, filename), plot = plot, device = "png", width = 10, height = 6)
 }
 
+
+# Descriptive Statistics of yearly data ========================================
+
+des_stats <- main_banks_data[, c("year", "total_amount_loan", "hhi", "cnty_pop", "mean_earning", "mean_emp", "ur")]
+
+key_var <- c("total_amount_loan", "hhi", "cnty_pop", "mean_earning", "mean_emp", "ur")
+
+descriptive_stats <- list()
+
+descriptive_stats <- lapply(key_var, function(var) {
+  des_stats[, .(
+    mean = mean(get(var), na.rm = TRUE),
+    median = median(get(var), na.rm = TRUE),
+    sd = sd(get(var), na.rm = TRUE),
+    min = min(get(var), na.rm = TRUE),
+    max = max(get(var), na.rm = TRUE),
+    count = .N
+  ), by = year]
+})
+
+names(descriptive_stats) <- key_var
