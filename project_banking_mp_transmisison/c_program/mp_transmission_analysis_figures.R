@@ -109,27 +109,31 @@ ggplot() +
 # 3. Plot Market Conentration over time ========================================
 
 main <- LOAD(dfinput = "main_allfin_data")
+hhi_county <- LOAD(dfinput = "main_allfin_data")
 setDT(main)
+setDT(hhi_county)
 main <- main[, c("fips", "year", "hhi")]
 # main <- main[year %in% seq(2005, 2015, by = 2)]
 main <- main[, year := as.factor(year)]
 main <- main[year %in% c(2004, 2015)]
+hhi_county <- hhi_county[, c("fips", "mean_hhi", "mean_hhi_pre")]
+hhi_county <- unique(hhi_county, by = c("fips"))
 
-ggplot(main, aes(x = hhi, group = year,  color = year)) +
-  geom_density(alpha = 0.5, size = 1) +  # Use alpha to make the plot semi-transparent for better visibility
-  geom_ribbon(stat = "density", aes(ymin = 0, ymax = ..density.., fill = year), alpha = 0.2) +  # Fill the gap between density lines
+ggplot() +
+  geom_density(data = main, aes(x = hhi, group = year, color = year), alpha = 0.5, size = 1) +  # Density plot for dt
+  geom_density(data = hhi_county, aes(x = mean_hhi), alpha = 0.3, size = 1) +  # Density plot for mean_hhi from hhi_county
+  geom_density(data = hhi_county, aes(x = mean_hhi_pre), alpha = 0.3, size = 1, color = "midnightblue") +  # Density plot for mean_hhi from hhi_county
+  geom_vline(xintercept = 2500, linetype = "dotdash", color = "black", size = 1) +  # Vertical line at 2500
   labs(
     title = "Density Plot of HHI by Year",
     x = "Herfindahl-Hirschman Index (HHI)",
     y = "Density",
-    fill = "Year",
-    color = "Year"
+    color = "Year",
+    fill = "Year"
   ) +
   scale_x_continuous(breaks = seq(0, max(main$hhi, na.rm = TRUE), by = 1000)) +  # Set x-axis breaks of 1000
   scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +  # Better scaling for y-axis
   theme_minimal() +
-  geom_vline(xintercept = 2500, linetype = "dotdash", color = "black", size = 1) +
-  # Customizing the theme for better aesthetics
   theme(
     plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
     plot.subtitle = element_text(size = 12, face = "italic", hjust = 0.5),
@@ -137,5 +141,6 @@ ggplot(main, aes(x = hhi, group = year,  color = year)) +
     axis.title = element_text(size = 12, face = "bold"),
     legend.position = "right"
   )
+
 
 
