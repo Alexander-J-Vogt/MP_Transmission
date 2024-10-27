@@ -53,6 +53,15 @@ banks_data <- banks_data[inrange(year, start, end)]
 
 complete_banks_data <- COMPLETEOBS(data = banks_data, rowx = "fips", colx = "year")
 
+# Implement First Differencing for all relevant variables
+# Define the key variables to demean
+key_vars <- c("ln_loan_amount", "ln_wtd_loan_amount", "lead_ln_loan_amount", "lead_ln_wtd_loan_amount","mean_hhi", "cnty_pop", "mean_earning", "mean_emp", "ur")
+
+# Calculate the year-specific mean for each variable and subtract it from the individual observation
+for (var in key_vars) {
+  # Calculate the mean for each year
+  complete_banks_data[, paste0("demeaned_", var) := get(var) - mean(get(var), na.rm = TRUE), by = year]
+}
 
 # 2. Dataset with Mortgages of all Financial Institutions ======================
 
