@@ -63,6 +63,14 @@ for (var in key_vars) {
   complete_banks_data[, paste0("demeaned_", var) := get(var) - mean(get(var), na.rm = TRUE), by = year]
 }
 
+# Create lagged variables
+lagged_var <- c("cnty_pop", "mean_earning", "mean_emp", "ur")
+
+for (i in lagged_var) {
+  complete_banks_data[, paste0("lag_", i) := shift(get(i), type = "lag"), by = fips]
+}
+
+
 # 2. Dataset with Mortgages of all Financial Institutions ======================
 
 allfin_data <- LOAD(dfinput = "allfin_data_joined")
