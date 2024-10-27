@@ -219,3 +219,12 @@ print(pooled_correlation)
 
 # Optional: Visualize the pooled correlation matrix
 corrplot(pooled_correlation, method = "number", type = "lower", tl.col = "black", tl.srt = 45, title = "Pooled Correlation Matrix")
+
+# Density of variables =========================================================
+
+ggplot() +
+  # geom_density(data = main_banks_data, aes(x = mean_earning), color = "blue") +
+  geom_density(data = main_banks_data, aes(x = log(mean_earning)), color = "red")
+
+ggplot() + 
+  geom_density(data = main_banks_data, aes(x = mean_earning), color = "blue")
