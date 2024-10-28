@@ -25,6 +25,17 @@ gc()
 main <- LOAD(dfinput = "main_banks_data")
 setDT(main)
 main <- main[inrange(year, 2006, 2010)]
+
+# Restict to only two year in the dataset
+main_1y <- main[inrange[year, 2008, 2009]]
+main_2y <- main[year %in% c(2008, 2010)]
+main_3y <- main[year %in% c(2008, 2011)]
+
+# One year anticipation 
+main_1y_1a <- main[year %in% c(2007, 2008, 2009)]
+main_2y_1a <- main[year %in% c(2007, 2008, 2010)]
+main_3y_1a <- main[year %in% c(2007, 2008, 2011)]
+
 main <-main[, state := as.factor(state)]
 # main <-main[, year := as.factor(year)]
 
@@ -365,8 +376,10 @@ formula5 <- as.formula(lead_ln_loan_amount ~ d_median_all_pre + d_ffr_indicator 
 formula6 <- as.formula(lead_ln_loan_amount ~ d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + mean_emp)
 formula7 <- as.formula(lead_ln_loan_amount ~ d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + ur)
 formula8 <- as.formula(lead_ln_loan_amount ~ d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + cnty_pop + lag_ur + ur + log_earnings + d_msa + mean_emp)
+formula9 <- as.formula(lead_ln_loan_amount ~ d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + log_emp)
 
-formula <- c("formula1", "formula2", "formula3", "formula4", "formula5", "formula6", "formula7", "formula8" )
+
+formula <- c("formula1", "formula2", "formula3", "formula4", "formula5", "formula6", "formula7", "formula8", "formula9")
 
 # Hausman Test for Fixed vs Random Fixed Effects 
 pmain <- pdata.frame(main, index = c("fips", "year"))
@@ -374,7 +387,8 @@ pmain <- pdata.frame(main, index = c("fips", "year"))
 for (i in formula) {
   fixed_model <- plm(get(i), data = pmain, model = "within")
   random_model <- plm(get(i), data = pmain, model = "random")
-  test <- phtest(fixed_model, random_model) 
+  # test <- phtest(fixed_model, random_model) 
+  test <- plmtest(fixed_model, effect = "individual", type = "bp") 
   print(paste0("Test Results: ", i))
   print(test)
   # Standard errors without clustering
@@ -388,3 +402,10 @@ for (i in formula) {
   # print(clustered_se)
 
 }
+
+ggplot() +
+  geom_density(data = main, aes(x = log(mean_emp)))
+
+ggplot() +
+  geom_density(data = main, aes(x = mean_emp))
+
