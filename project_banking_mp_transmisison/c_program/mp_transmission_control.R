@@ -65,7 +65,7 @@ pop_cnty <- LOAD(dfinput = "pop_cnty")
 pop_state <- LOAD(dfinput = "pop_state")
 
 # Import Unemployment Rate
-ur_cny <- LOAD(dfinput = "ur_cnty")
+ur_cnty <- LOAD(dfinput = "ur_cnty")
 
 # Import Average Earnings Data
 qwi_earnings <- LOAD(dfinput = "qwi_earnings")
@@ -73,15 +73,21 @@ qwi_earnings <- LOAD(dfinput = "qwi_earnings")
 # Import Controls from sod
 controls_sod <- LOAD(dfinput = "controls_sod")
 
+# Population density
+pop_density <- LOAD(dfinput = "landarea_data")
+
 # Combining datasets by county and year
 merged_data <- left_join(pop_cnty, controls_sod, by = c("fips", "year"))
 merged_data <- left_join(merged_data, qwi_earnings, by = c("fips", "year"))
-merged_data <- left_join(merged_data, ur_cny, by = c("fips", "year"))
-
+merged_data <- left_join(merged_data, ur_cnty, by = c("fips", "year"))
+merged_data <- left_join(merged_data, pop_density, by = "fips")
 
 # Creating share of employment in each county and year
 setDT(merged_data)
 merged_data[, emp_rate := mean_emp / cnty_pop]
+
+# Calculate population desnity of a county
+merged_data <- merged_data[, pop_density := cnty_pop / landarea_sqkm]
 
 # SAVE
 SAVE(dfx = merged_data)
