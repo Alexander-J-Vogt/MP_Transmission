@@ -530,3 +530,136 @@ ggplot() +
 
 # 10. Final Assessment of the Control Variables ================================
 
+## 10.1 Final Assesment w/o weighted regression --------------------------------
+lapply(outcome_var, function (x) {
+  # x <- outcome_var[1]
+  did1 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator | state | 0 | state")), data = main)
+  did2 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + cnty_pop | state | 0 | state")), data = main)
+  did3 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + pop_density | state | 0 | state")), data = main)
+  did4 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + ur | state | 0 | state")), data = main)
+  did5 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + lag_ur | state | 0 | state")), data = main)
+  did6 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + log_earnings | state | 0 | state")), data = main)
+  did7 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + log_emp | state | 0 | state")), data = main)
+  did8 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + lag_log_emp | state | 0 | state")), data = main)
+  did9 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + d_msa | state | 0 | state")), data = main)
+  
+  stargazer(did1, did2, did3, did4, did5, did6, did7, did8, did9,
+            type = "text",
+            title = paste0("Results: ", gsub("_", " ", x)),
+            column.labels = c("Base", "Cntrl 1",  "Cntrl 2",  "Cntrl 3", "Cntrl 4", "Cntrl 5", "Cntrl 6", "Cntrl8", "Cntrl9"),
+            covariate.labels = c("Dummy: HHI MC", "Dummy: Before GR", "Total Population", "Poplation Density", 
+                                 "Unemployment Rate", "Lagged Unemployment Rate", "Log Earnings", "Log Employment", 
+                                 "Lagged Log Employment", "MSA Indicator", "DiD Estimator"),
+            dep.var.labels = c(rep(gsub("_", " ", ""),9))
+            ,
+            out = paste0(LATEX, x, "_final_var.html")
+            # no.space = TRUE,  # Removes extra spaces for better formatting
+            # digits = 2       # Rounds coefficients to 2 decimal places
+  )
+  
+  # tinytex::latexmk(paste0(LATEX, x, ".tex"))
+  
+})
+
+## 10.2 Final Assesment with weighted regression --------------------------------
+
+lapply(outcome_var, function (x) {
+  # x <- outcome_var[1]
+  did1 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator | state | 0 | state")), data = main, weights = 1/main$cnty_pop)
+  did2 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + cnty_pop | state | 0 | state")), data = main, weights =  1/main$cnty_pop)
+  did3 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + pop_density | state | 0 | state")), data = main, weights = 1/main$cnty_pop)
+  did4 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + ur | state | 0 | state")), data = main, weights = 1/main$cnty_pop)
+  did5 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + lag_ur | state | 0 | state")), data = main, weights =  1/main$cnty_pop)
+  did6 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + log_earnings | state | 0 | state")), data = main, weights =  1/main$cnty_pop)
+  did7 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + log_emp | state | 0 | state")), data = main, weights =  1/main$cnty_pop)
+  did8 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + lag_log_emp | state | 0 | state")), data = main, weights = 1/main$cnty_pop)
+  did9 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + d_msa | state | 0 | state")), data = main, weights = 1/main$cnty_pop)
+  
+  stargazer(did1, did2, did3, did4, did5, did6, did7, did8, did9,
+            type = "text",
+            title = paste0("Results: ", gsub("_", " ", x)),
+            column.labels = c("Base", "Cntrl 1",  "Cntrl 2",  "Cntrl 3", "Cntrl 4", "Cntrl 5", "Cntrl 6", "Cntrl8", "Cntrl9"),
+            covariate.labels = c("Dummy: HHI MC", "Dummy: Before GR", "Total Population", "Poplation Density", 
+                                 "Unemployment Rate", "Lagged Unemployment Rate", "Log Earnings", "Log Employment", 
+                                 "Lagged Log Employment", "MSA Indicator", "DiD Estimator"),
+            dep.var.labels = c(rep(gsub("_", " ", ""),9))
+            ,
+            out = paste0(LATEX, x, "_final_var_weighted.html")
+            # no.space = TRUE,  # Removes extra spaces for better formatting
+            # digits = 2       # Rounds coefficients to 2 decimal places
+  )
+  
+  # tinytex::latexmk(paste0(LATEX, x, ".tex"))
+  
+})
+
+## 10.3 Assesing different specifications of weighted regressions --------------
+
+# Setting 8 & 9 seem to be good
+lapply(outcome_var, function (x) {
+  # x <- outcome_var[1]
+  did1 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator | state | 0 | state")), data = main, weights = 1/main$cnty_pop)
+  did2 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + ur + log_earnings + log_emp| state | 0 | state")), data = main, weights = 1/main$cnty_pop)
+  did3 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + ur + log_earnings + log_emp + d_msa| state | 0 | state")), data = main, weights = 1/main$cnty_pop)
+  did4 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + lag_ur + log_earnings + log_emp | state | 0 | state")), data = main, weights = 1/main$cnty_pop)
+  did5 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + lag_ur + log_earnings + log_emp + d_msa| state | 0 | state")), data = main, weights =  1/main$cnty_pop)
+  did6 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + ur + log_emp| state | 0 | state")), data = main, weights = 1/main$cnty_pop)
+  did7 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + ur + log_emp + d_msa| state | 0 | state")), data = main, weights = 1/main$cnty_pop)
+  did8 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + lag_ur + log_earnings | state | 0 | state")), data = main, weights = 1/main$cnty_pop)
+  did9 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + lag_ur + log_earnings + d_msa| state | 0 | state")), data = main, weights =  1/main$cnty_pop)
+  did10 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + ur + lag_ur + log_earnings + log_emp + d_msa| state | 0 | state")), data = main, weights =  1/main$cnty_pop)
+  
+  stargazer(did1, did2, did3, did4, did5, did6, did7, did8, did9, did10,
+            type = "text",
+            title = paste0("Results: ", gsub("_", " ", x)),
+            column.labels = c("Base", "Cntrl 1",  "Cntrl 2",  "Cntrl 3", "Cntrl 4", "Cntrl 5", "Cntrl 6", "Cntrl8", "Cntrl9", "Cntrl10"),
+            # covariate.labels = c("Dummy: HHI MC", "Dummy: Before GR", "Unemployment Rate", "Lagged Unemployment Rate", "Log Earnings", "Log Employment", 
+            #                       "MSA Indicator", "DiD Estimator"),
+            dep.var.labels = c(rep(gsub("_", " ", ""),10))
+            ,
+            out = paste0(LATEX, x, "_final_combintations.html")
+            # no.space = TRUE,  # Removes extra spaces for better formatting
+            # digits = 2       # Rounds coefficients to 2 decimal places
+  )
+  
+  # tinytex::latexmk(paste0(LATEX, x, ".tex"))
+  
+})
+
+# Try a few more specification and add 8 & 9 from above
+lapply(outcome_var, function (x) {
+  x <- outcome_var[1]
+  did1 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator | state | 0 | state")), data = main, weights = 1/main$cnty_pop)
+  did2 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + ur + log_earnings | state | 0 | state")), data = main, weights = 1/main$cnty_pop)
+  did3 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + ur + log_earnings + d_msa| state | 0 | state")), data = main, weights = 1/main$cnty_pop)
+  did4 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + lag_ur + log_earnings  | state | 0 | state")), data = main, weights = 1/main$cnty_pop)
+  did5 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + lag_ur + log_earnings + d_msa| state | 0 | state")), data = main, weights =  1/main$cnty_pop)
+  did6 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + log_emp + log_earnings | state | 0 | state")), data = main, weights = 1/main$cnty_pop)
+  did7 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + log_emp + log_earnings + d_msa| state | 0 | state")), data = main, weights = 1/main$cnty_pop)
+  did8 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + lag_ur + log_earnings | state | 0 | state")), data = main, weights = 1/main$cnty_pop)
+  did9 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + lag_ur + log_earnings + d_msa| state | 0 | state")), data = main, weights =  1/main$cnty_pop)
+  did10 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + ur + lag_ur + log_earnings + log_emp + d_msa| state | 0 | state")), data = main, weights =  1/main$cnty_pop)
+  
+  stargazer(did1, did2, did3, did4, did5, did6, did7, did8, did9, did10,
+            type = "text",
+            title = paste0("Results: ", gsub("_", " ", x)),
+            column.labels = c("Base", "Cntrl 1",  "Cntrl 2",  "Cntrl 3", "Cntrl 4", "Cntrl 5", "Cntrl 6", "Cntrl8", "Cntrl9", "Cntrl10"),
+            # covariate.labels = c("Dummy: HHI MC", "Dummy: Before GR", "Unemployment Rate", "Lagged Unemployment Rate", "Log Earnings", "Log Employment", 
+            #                      "MSA Indicator", "DiD Estimator"),
+            dep.var.labels = c(rep(gsub("_", " ", ""),10))
+            ,
+            out = paste0(LATEX, x, "_final_combset.html")
+            # no.space = TRUE,  # Removes extra spaces for better formatting
+            # digits = 2       # Rounds coefficients to 2 decimal places
+  )
+  
+  # tinytex::latexmk(paste0(LATEX, x, ".tex"))
+  
+})
+
+confint(did1)
+
+# 11. Calculate the ATT ========================================================
+
+
+
