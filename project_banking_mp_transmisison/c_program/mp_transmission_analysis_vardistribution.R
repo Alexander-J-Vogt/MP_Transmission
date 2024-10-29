@@ -181,9 +181,13 @@ for (i in seq_along(mean_value_plots)) {
 
 # Descriptive Statistics of yearly data ========================================
 
-des_stats <- main_banks_data[, c("year", "total_amount_loan", "hhi", "cnty_pop", "mean_earning", "mean_emp", "ur")]
+des_stats <- main_banks_data[, c("year", "total_amount_loan", "lead_ln_loan_amount", 
+                                 "hhi", "cnty_pop", "pop_density", "mean_earning", 
+                                 "mean_emp", "ur", "lag_ur","log_emp", "lag_log_emp")]
 
 key_var <- c("total_amount_loan", "hhi", "cnty_pop", "mean_earning", "mean_emp", "ur")
+
+update_key_var <- c("lead_ln_loan_amount", "hhi", "cnty_pop", "pop_density", "ur", "lag_ur", "mean_emp", "log_emp", "lag_log_emp")
 
 descriptive_stats <- list()
 
@@ -198,7 +202,7 @@ descriptive_stats <- lapply(key_var, function(var) {
   ), by = year]
 })
 
-names(descriptive_stats) <- key_var
+names(descriptive_stats) <- update_key_var
 
 # Correlation of variables by year and pooled ==================================
 
@@ -212,11 +216,11 @@ correlation_tables <- lapply(unique(des_stats$year), function(yr) {
 names(correlation_tables) <- paste0("year_", unique(des_stats$year))
 
 # Pooled correlation table across all years
-pooled_correlation <- cor(des_stats[, ..key_var], use = "complete.obs")
+pooled_correlation <- cor(des_stats[, ..update_key_var], use = "complete.obs")
 
 # Print the pooled correlation table
-print(pooled_correlation)
-
+print(pooled_correlationon)
+library(corrplot)
 # Optional: Visualize the pooled correlation matrix
 corrplot(pooled_correlation, method = "number", type = "lower", tl.col = "black", tl.srt = 45, title = "Pooled Correlation Matrix")
 
