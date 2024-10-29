@@ -182,12 +182,12 @@ for (i in seq_along(mean_value_plots)) {
 # Descriptive Statistics of yearly data ========================================
 
 des_stats <- main_banks_data[, c("year", "total_amount_loan", "lead_ln_loan_amount", 
-                                 "hhi", "cnty_pop", "pop_density", "mean_earning", 
+                                 "hhi", "cnty_pop", "pop_density", "mean_earning", "log_earnings",
                                  "mean_emp", "ur", "lag_ur","log_emp", "lag_log_emp")]
 
 key_var <- c("total_amount_loan", "hhi", "cnty_pop", "mean_earning", "mean_emp", "ur")
 
-update_key_var <- c("lead_ln_loan_amount", "hhi", "cnty_pop", "pop_density", "ur", "lag_ur", "mean_emp", "log_emp", "lag_log_emp")
+update_key_var <- c("lead_ln_loan_amount", "hhi", "cnty_pop", "pop_density", "ur", "lag_ur", "mean_emp", "log_emp", "lag_log_emp", "mean_earning", "log_earnings")
 
 descriptive_stats <- list()
 
@@ -224,7 +224,7 @@ print(pooled_correlation)
 library(corrplot)
 # Optional: Visualize the pooled correlation matrix
 png(paste0(FIGURE, "correlation_plot.png"), width = 800, height = 600)
-corrplot(pooled_correlation, method = "number", type = "lower", tl.col = "black", tl.srt = 45, title = "Pooled Correlation Matrix")
+corrplot(pooled_correlation, method = "number", type = "lower", tl.col = "black", tl.srt = 45)
 dev.off()
 
 # Density of variables =========================================================
