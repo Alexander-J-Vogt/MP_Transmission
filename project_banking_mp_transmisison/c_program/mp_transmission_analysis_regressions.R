@@ -730,7 +730,7 @@ ggdid <- function (dfx) {
   
 test <- ggdid(dfx = anticipation_0$cov_ur)
 
-## 12. Run the final specification with a nicely formated stargazer table
+## 12. Final specification with a formatted stargazer table ====================
 
 df_antcp0 <- df_base[inrange(year, 2007, 2010)]
 df_antcp1 <- df_base[inrange(year, 2006, 2010)]
@@ -738,11 +738,35 @@ df_antcp2 <- df_base[inrange(year, 2005, 2010)]
 
 base_formel <- c("lead_ln_loan_amount ~ d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator")
 
-reg_base <- felm(as.formula(paste0(base_formel, " | state | 0 | state")), data = df_antcp1, weights = 1/main$cnty_pop)
-reg_cov <- felm(as.formula(paste0(base_formel, " + ur + log_earnings | state | 0 | state")), data = df_antcp1, weights = 1/main$cnty_pop)
-reg_cov_add <- felm(as.formula(paste0(base_formel, " + ur + log_earnings + d_msa| state | 0 | state")), data = df_antcp1, weights = 1/main$cnty_pop)
+did1 <- felm(as.formula(paste0(base_formel, " | state | 0 | state")), data = df_antcp0, weights = 1/df_antcp0$cnty_pop)
+did2 <- felm(as.formula(paste0(base_formel, " + ur + log_earnings | state | 0 | state")), data = df_antcp0, weights = 1/df_antcp0$cnty_pop)
+did3 <- felm(as.formula(paste0(base_formel, " + ur + log_earnings + d_msa| state | 0 | state")), data = df_antcp0, weights = 1/df_antcp0$cnty_pop)
 
+did4 <- felm(as.formula(paste0(base_formel, " | state | 0 | state")), data = df_antcp1, weights = 1/df_antcp1$cnty_pop)
+did5 <- felm(as.formula(paste0(base_formel, " + ur + log_earnings | state | 0 | state")), data = df_antcp1, weights = 1/df_antcp1$cnty_pop)
+did6 <- felm(as.formula(paste0(base_formel, " + ur + log_earnings + d_msa| state | 0 | state")), data = df_antcp1, weights = 1/df_antcp1$cnty_pop)
 
+# Stargazer table
+stargazer(did1, did2, did3, did4, did5, did6,
+          type = "text",
+          digits = 3,
+          title = "Regression Results: Leading Log Loan Amount",
+          column.labels = c("Anticipation: 0 Years", "Anticipation: 1 Years"),  # Headers for the first and last three columns
+          column.separate = c(3, 3), 
+          dep.var.labels.include = FALSE,        # Exclude automatic dependent variable label
+          model.names = FALSE,                   # Exclude model names
+          covariate.labels = c("Dummy: Market Concentration", "Dummy: Great Recession",
+                               "Unemployment Rate", "Log Earnings", "Dummy: MSA", "DiD Estimator"),
+          add.lines = list(
+            c("State FE:", "True", "True", "True", "True", "True", "True"),
+            c("Clustered SE on State-Level:", "True", "True", "True", "True", "True", "True")# Custom row for dependent variable
+          ),               # Exclude model names
+          omit.stat = c("LL", "ser", "f"),
+          no.space = FALSE,
+          out = paste0(LATEX, "regression_main_results.tex") 
+          )
+
+##
 
 # Function to calculate post-treatment effects 
 data <- df_base
