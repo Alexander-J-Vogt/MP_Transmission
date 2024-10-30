@@ -726,19 +726,25 @@ PRETREATMENTATE <- function (data , min_yr, max_yr, covx) {
 
   # Inititate the data frame, where the results should be be saved
   df_coef <- data.frame(year = NA, anticipation = NA, att = NA, sd = NA, ci_lower = NA, ci_upper = NA)
+  
   # Determine the sequnce of years, which the loop should run over
   period  <- seq(min_yr + 1 , max_yr)
+  
   for ( i in period ){
     # i <- period[3]
+    # Subset the data for only two on each other following years
     years_to_include <- c(i - 1 , i)
     subset_data <- subset(data, year %in% years_to_include)
     subset_data$d_pseudo <- ifelse(subset_data$year == i, 1, 0)
-    formula <- as.formula(paste0("lead_ln_loan_amount ~ d_pseudo + d_median_all_pre + d_pseudo:d_median_all_pre +", covx, "| state | 0 | state"))
     
+    # Regression with state FE, clustered SE on state-level and weighted by county population
+    formula <- as.formula(paste0("lead_ln_loan_amount ~ d_pseudo + d_median_all_pre + d_pseudo:d_median_all_pre +", covx, "| state | 0 | state"))
     model <- lfe::felm(formula, data = subset_data, weights = 1 / subset_data$cnty_pop)
     
+    # Retrieve did_name 
     did_name <- tail(names(coef(model)), 1)
     
+    # Save results in data frame
     df_coef[i - min_yr, 1] <- i
     df_coef[i - min_yr, 2] <- NA
     df_coef[i - min_yr, 3] <- model$coefficients[nrow(model$coefficients),]
