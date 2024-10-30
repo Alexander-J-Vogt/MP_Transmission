@@ -682,7 +682,7 @@ results_post_no_anticipation <- lapply(formula_list, SPECIFICATE, data = df_base
 combined_results <- map2(results_pre_no_anticipation, results_post_no_anticipation, bind_rows)
 
 # Define the range of anticipation values
-anticipation_values <- 0:3
+anticipation_values <- 0:2
 
 # Loop over anticipation values and store combined results with names
 combined_results_all <- setNames(
@@ -704,6 +704,7 @@ combined_results_all <- setNames(
   }),
   paste0("anticipation_", anticipation_values)
 )
+
 
 
 
