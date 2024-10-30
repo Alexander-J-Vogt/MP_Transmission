@@ -652,7 +652,6 @@ confint(did1)
 
 # 11. Calculate the ATT ========================================================
 
-
 formula_base <- as.formula(lead_ln_loan_amount ~ d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator | state | 0 | state)
 formula_ur <- as.formula(lead_ln_loan_amount ~ d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator  + ur + log_earnings| state | 0 | state)
 formula_ur_msa <- as.formula(lead_ln_loan_amount ~ d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator  + ur + log_earnings + d_msa| state | 0 | state)
@@ -665,49 +664,7 @@ formula_lagur_msa <- as.formula(lead_ln_loan_amount ~ d_median_all_pre + d_ffr_i
 # in the end I only have to append them correctly
 
 
-SPECIFICATE <- function (data, reg, reference_yr, max_yr, anticipation) { 
-  # reference_year <- 2007
-  # data <- df_base
-  # reference_yr <- 2007
-  # anticipation <- 0
-  # i <- 2009
-  # max_yr <- 2010
-  # Create df to save results
-  df_coef <- data.frame(year = NA, anticipation = NA, att = NA, sd = NA, ci_lower = NA, ci_upper = NA)
-  # Create sequence of years
-  periods <- seq(reference_yr + 1, max_yr)
-  
-  for ( i in periods ) {
-  
-    if (anticipation >= 0 && i <= max_yr ) { 
-      # Define years to include: anticipation years before reference_yr, reference_yr itself, and reference_yr + i
-      years_to_include <- c(seq(reference_yr - anticipation, reference_yr), i)
-      
-      # Subset the data to only include rows with years in years_to_include
-      subset_data <- subset(data, year %in% years_to_include)
-      
-      # Fit the model with the subset data
-      model <- felm(reg, data = subset_data, weights = 1 / subset_data$cnty_pop)
-      
-      # subset_main <- subset(main[year %in% c(2007, reference_yr + i )])
-      # model <- felm(formula_ur, data = subset_main, weights = 1 / subset_main$cnty_pop)
-    } else {
-      # Handle case when i exceeds max_yr or if anticipation is negative
-      stop("Invalid input: check the value of i or anticipation.")
-    }
-    
-  df_coef[i - reference_yr, 1] <- max(subset_data$year)
-  df_coef[i - reference_yr, 2] <- reference_yr - min(subset_data$year)
-  df_coef[i - reference_yr, 3] <- model$coefficients["d_median_all_pre:d_ffr_indicator",]
-  df_coef[i - reference_yr, 4] <- model$cse["d_median_all_pre:d_ffr_indicator"]
-  df_coef[i - reference_yr, 5] <- confint(model, parm = "d_median_all_pre:d_ffr_indicator", level = 0.95)[1]
-  df_coef[i - reference_yr, 6] <- confint(model, parm = "d_median_all_pre:d_ffr_indicator", level = 0.95)[2]
 
-  }
-  return(df_coef)
-# summary(model)
-
-}
 
 results <- SPECIFICATE(data = df_base, reg = formula_ur, reference_yr = 2007, max_yr = 2015, anticipation = 1)
 
