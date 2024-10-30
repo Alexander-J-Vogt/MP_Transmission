@@ -35,7 +35,7 @@ sod <- sod[, .(year, fips, state, county, depsumbr, rssdid)]
 setorder(sod, year, fips, rssdid)
 
 # Exclude all irrelevant time periods
-sod <-  sod[inrange(year, 2004 , 2015)]
+sod <-  sod[inrange(year, 2000 , 2017)]
 
 
 ## 1.2 Create HHI by county -----------------------------------------------------
@@ -213,7 +213,19 @@ SAVE(dfx = ffr_data, namex = "ffr_annual")
 # Combine SOD dataset and FFR dataset by year
 treatment_data <- left_join(sod, ffr_data, by = c("year"))
 
-# Save dataset
+# 4. Placebo-Test Variables ====================================================
+treatment_data[, d_placebo_2001 := ifelse(year >= 2001, 1, 0)]
+treatment_data[, d_placebo_2002 := ifelse(year >= 2002, 1, 0)]
+treatment_data[, d_placebo_2003 := ifelse(year >= 2003, 1, 0)]
+treatment_data[, d_placebo_2011 := ifelse(year >= 2011, 1, 0)]
+treatment_data[, d_placebo_2012 := ifelse(year >= 2012, 1, 0)]
+treatment_data[, d_placebo_2013 := ifelse(year >= 2013, 1, 0)]
+treatment_data[, d_placebo_2014 := ifelse(year >= 2014, 1, 0)]
+treatment_data[, d_placebo_2015 := ifelse(year >= 2015, 1, 0)]
+
+
+# 5. Saving the dataset ========================================================
+
 SAVE(treatment_data, namex = MAINNAME)
 
 
