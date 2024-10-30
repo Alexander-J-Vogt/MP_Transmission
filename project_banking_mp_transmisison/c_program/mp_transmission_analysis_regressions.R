@@ -653,21 +653,61 @@ confint(did1)
 
 # 11. Calculate the ATT ========================================================
 
+# Different formulas
 formula_base <- as.formula(lead_ln_loan_amount ~ d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator | state | 0 | state)
-formula_ur <- as.formula(lead_ln_loan_amount ~ d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator  + ur + log_earnings| state | 0 | state)
+formula_ur <- as.formula(lead_ln_loan_amount ~ d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + ur + log_earnings| state | 0 | state)
 formula_ur_msa <- as.formula(lead_ln_loan_amount ~ d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator  + ur + log_earnings + d_msa| state | 0 | state)
-# formula_lagur <- as.formula(lead_ln_loan_amount ~ d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator  + lag_ur + log_earnings + d_msa| state | 0 | state)
-# formula_lagur_msa <- as.formula(lead_ln_loan_amount ~ d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator  + lag_ur + log_earnings + d_msa| state | 0 | state)
 
-# Change in stratgy: two functions
-# One for which the isolated effects are calculated for the period after the Great Recession
-# One for which I calculate the effects on after one 
-# in the end I only have to append them correctly
+formula_list <- list(formula_base, formula_ur, formula_ur_msa)
+
+names(formula_list) <- c("formula_base", "formula_ur", "formula_ur_msa")
+
+# Different additional covariate settings for pre-treatment effects
+cov_base <- c("")
+cov_ur <- c("+ ur + log_earnings")
+cov_ur_msa <- c("+ ur + log_earnings + d_msa")
+
+# Combine all covariate settings into a list
+covariate_list <- list(cov_base, cov_ur, cov_ur_msa)
+
+# Assign names for readability in results
+names(covariate_list) <- c("cov_base", "cov_ur", "cov_ur_msa")
+
+# Loop over names vector
+
+results_pre_no_anticipation <- lapply(covariate_list, PRETREATMENTATE, data = df_base, min_yr = 2004, max_yr = 2007, anticipation = 0 )
+
+results_post_no_anticipation <- lapply(formula_list, SPECIFICATE, data = df_base, reference_yr = 2007, max_yr = 2015, anticipation = 0 )
+
+combined_results <- map2(results_pre_no_anticipation, results_post_no_anticipation, bind_rows)
+
+# Define the range of anticipation values
+anticipation_values <- 0:3
+
+# Loop over anticipation values and store combined results with names
+combined_results_all <- setNames(
+  lapply(anticipation_values, function(anticipation) {
+    
+    # Run pre-treatment analysis
+    results_pre <- lapply(covariate_list, PRETREATMENTATE, data = df_base, 
+                          min_yr = 2004, max_yr = 2007, anticipation = anticipation)
+    
+    # Run post-treatment analysis
+    results_post <- lapply(formula_list, SPECIFICATE, data = df_base, 
+                           reference_yr = 2007, max_yr = 2015, anticipation = anticipation)
+    
+    # Combine pre and post results for each covariate/formula setting
+    combined_results <- map2(results_pre, results_post, bind_rows)
+    
+    # Return combined results for this anticipation level
+    combined_results
+  }),
+  paste0("anticipation_", anticipation_values)
+)
 
 
 
 
-results <- SPECIFICATE(data = df_base, reg = formula_ur, reference_yr = 2007, max_yr = 2015, anticipation = 1)
 
 
 # Function to calculate post-treatment effects 
