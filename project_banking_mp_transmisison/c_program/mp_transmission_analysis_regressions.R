@@ -652,15 +652,6 @@ confint(did1)
 
 # 11. Calculate the ATT ========================================================
 
-# Restict to only two year in the dataset
-main_1y <- main[inrange(year, 2008, 2009)]
-main_2y <- main[year %in% c(2008, 2010)]
-main_3y <- main[year %in% c(2008, 2011)]
-
-# One year anticipation 
-main_1y_1a <- main[year %in% c(2007, 2008, 2009)]
-main_2y_1a <- main[year %in% c(2007, 2008, 2010)]
-main_3y_1a <- main[year %in% c(2007, 2008, 2011)]
 
 formula_base <- as.formula(lead_ln_loan_amount ~ d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator | state | 0 | state)
 formula_ur <- as.formula(lead_ln_loan_amount ~ d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator  + ur + log_earnings| state | 0 | state)
@@ -673,16 +664,17 @@ formula_lagur_msa <- as.formula(lead_ln_loan_amount ~ d_median_all_pre + d_ffr_i
 # One for which I calculate the effects on after one 
 # in the end I only have to append them correctly
 
-df_coef <- data.frame(year = NA, anticipation = NA, att = NA, sd = NA, ci_lower = NA, ci_upper = NA)
-reference_year <- 2007
-post_yr <- 4
 
-SPECIFICATT <- function (data, reference_yr, max_yr, anticipation) { 
-  
+SPECIFICATT <- function (data, reg, reference_yr, max_yr, anticipation) { 
+  reference_year <- 2007
+  # data <- df_base
   # reference_yr <- 2007
   # anticipation <- 0
-  # # i <- 2
+  # i <- 2009
   # max_yr <- 2010
+  # Create df to save results
+  df_coef <- data.frame(year = NA, anticipation = NA, att = NA, sd = NA, ci_lower = NA, ci_upper = NA)
+  # Create sequence of years
   periods <- seq(reference_yr + 1, max_yr)
   
   for ( i in periods ) {
@@ -692,10 +684,10 @@ SPECIFICATT <- function (data, reference_yr, max_yr, anticipation) {
       years_to_include <- c(seq(reference_yr - anticipation, reference_yr), i)
       
       # Subset the data to only include rows with years in years_to_include
-      subset_main <- subset(data, year %in% years_to_include)
+      subset_data <- subset(data, year %in% years_to_include)
       
       # Fit the model with the subset data
-      model <- felm(formula_ur, data = subset_main, weights = 1 / subset_main$cnty_pop)
+      model <- felm(reg, data = subset_data, weights = 1 / subset_data$cnty_pop)
       
       # subset_main <- subset(main[year %in% c(2007, reference_yr + i )])
       # model <- felm(formula_ur, data = subset_main, weights = 1 / subset_main$cnty_pop)
@@ -704,10 +696,10 @@ SPECIFICATT <- function (data, reference_yr, max_yr, anticipation) {
       stop("Invalid input: check the value of i or anticipation.")
     }
     
-  df_coef[i - reference_yr, 1] <- max(subset_main$year)
-  df_coef[i - reference_yr, 2] <- reference_yr - min(subset_main$year)
+  df_coef[i - reference_yr, 1] <- max(subset_data$year)
+  df_coef[i - reference_yr, 2] <- reference_yr - min(subset_data$year)
   df_coef[i - reference_yr, 3] <- model$coefficients["d_median_all_pre:d_ffr_indicator",]
-  df_coef[i - reference_yr, 4] <- model$se["d_median_all_pre:d_ffr_indicator"]
+  df_coef[i - reference_yr, 4] <- model$cse["d_median_all_pre:d_ffr_indicator"]
   df_coef[i - reference_yr, 5] <- confint(model, parm = "d_median_all_pre:d_ffr_indicator", level = 0.95)[1]
   df_coef[i - reference_yr, 6] <- confint(model, parm = "d_median_all_pre:d_ffr_indicator", level = 0.95)[2]
 
@@ -717,5 +709,33 @@ SPECIFICATT <- function (data, reference_yr, max_yr, anticipation) {
 
 }
 
-results <- SPECIFICATT(data = main, reference_yr = 2007, max_yr = 2010, anticipation = 3)
+results <- SPECIFICATT(data = df_base, reg = formula_ur, reference_yr = 2007, max_yr = 2015, anticipation = 1)
 
+
+# Function to calculate post-treatment effects 
+data <- df_base
+reference_yr <- 2007
+anticipation <- 0
+i <- 2009
+min_yr <- 2004
+max_yr <- 2007
+period  <- seq(min_yr + 1 , max_yr)
+period <- 2005
+covariate <- c("ur + log_earnings")
+for ( i in period ){
+  
+  years_to_include <- c(period - 1 , period)
+  subset_data <- subset(data, year %in% years_to_include)
+  subset_data$pseudo_dummy <- ifelse(subset_data$year == period, 1, 0)
+  formula <- as.formula(paste0("lead_ln_loan_amount ~ pseudo_dummy + d_median_all_pre + pseudo_dummy:d_median_all_pre +", covariate))
+  
+  model <- lfe::felm(formula, data = subset_data, weights = 1 / subset_data$cnty_pop)
+  
+  df_coef[i - min_yr, 1] <- max(subset_data$year)
+  df_coef[i - min_yr, 2] <- reference_yr - min(subset_data$year)
+  df_coef[i - min_yr, 3] <- model$coefficients["d_median_all_pre:d_ffr_indicator",]
+  df_coef[i - min_yr, 4] <- model$cse["d_median_all_pre:d_ffr_indicator"]
+  df_coef[i - min_yr, 5] <- confint(model, parm = "d_median_all_pre:d_ffr_indicator", level = 0.95)[1]
+  df_coef[i - min_yr, 6] <- confint(model, parm = "d_median_all_pre:d_ffr_indicator", level = 0.95)[2]
+  
+}
