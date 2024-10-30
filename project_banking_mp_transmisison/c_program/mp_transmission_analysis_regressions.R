@@ -23,8 +23,9 @@ gc()
 # MAIN PART ####
 
 df_base <- LOAD(dfinput = "main_banks_data")
-setDT(main)
+setDT(df_base)
 main <- df_base[inrange(year, 2006, 2010)]
+
 # main <- main[, id := 1:nrow(main)]
 
 main <-main[, state := as.factor(state)]
@@ -655,8 +656,8 @@ confint(did1)
 formula_base <- as.formula(lead_ln_loan_amount ~ d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator | state | 0 | state)
 formula_ur <- as.formula(lead_ln_loan_amount ~ d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator  + ur + log_earnings| state | 0 | state)
 formula_ur_msa <- as.formula(lead_ln_loan_amount ~ d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator  + ur + log_earnings + d_msa| state | 0 | state)
-formula_lagur <- as.formula(lead_ln_loan_amount ~ d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator  + lag_ur + log_earnings + d_msa| state | 0 | state)
-formula_lagur_msa <- as.formula(lead_ln_loan_amount ~ d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator  + lag_ur + log_earnings + d_msa| state | 0 | state)
+# formula_lagur <- as.formula(lead_ln_loan_amount ~ d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator  + lag_ur + log_earnings + d_msa| state | 0 | state)
+# formula_lagur_msa <- as.formula(lead_ln_loan_amount ~ d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator  + lag_ur + log_earnings + d_msa| state | 0 | state)
 
 # Change in stratgy: two functions
 # One for which the isolated effects are calculated for the period after the Great Recession
@@ -671,8 +672,7 @@ results <- SPECIFICATE(data = df_base, reg = formula_ur, reference_yr = 2007, ma
 
 # Function to calculate post-treatment effects 
 data <- df_base
-reference_yr <- 2007
-anticipation <- 0
+anticipation <- 1
 i <- 2009
 min_yr <- 2004
 max_yr <- 2007
@@ -683,3 +683,38 @@ covx <-  c("ur + log_earnings")
 
 preresults <- PRETREATMENTATE(data = df_base, min_yr = 2004, max_yr = 2007, covx = c("ur + log_earnings"))
 
+PRETREATMENTATE <- function (data , min_yr, max_yr, covx, anticipation) {
+  
+  # Inititate the data frame, where the results should be be saved
+  df_coef <- data.frame(year = NA, anticipation = NA, att = NA, sd = NA, ci_lower = NA, ci_upper = NA)
+  
+  # Determine the sequnce of years, which the loop should run over
+  period  <- seq(min_yr + 1 + anticipation, max_yr)
+  
+  for ( i in period ){
+    i <- period[1]
+    # Subset the data for only two on each other following years
+    years_to_include <- seq(i - 1 - anticipation, i)
+    # years_to_include <- c(i - 1 , i)
+    subset_data <- subset(data, year %in% years_to_include)
+    subset_data$d_pseudo <- ifelse(subset_data$year == i, 1, 0)
+    
+    # Regression with state FE, clustered SE on state-level and weighted by county population
+    formula <- as.formula(paste0("lead_ln_loan_amount ~ d_pseudo + d_median_all_pre + d_pseudo:d_median_all_pre +", covx, "| state | 0 | state"))
+    model <- lfe::felm(formula, data = subset_data, weights = 1 / subset_data$cnty_pop)
+    
+    # Retrieve did_name 
+    did_name <- tail(names(coef(model)), 1)
+    
+    # Save results in data frame
+    df_coef[i - min_yr - anticipation, 1] <- i
+    df_coef[i - min_yr - anticipation, 2] <- NA
+    df_coef[i - min_yr - anticipation, 3] <- model$coefficients[nrow(model$coefficients),]
+    df_coef[i - min_yr - anticipation, 4] <- model$cse[length(model$cse)]
+    df_coef[i - min_yr - anticipation, 5] <- confint(model, parm = did_name, level = 0.95)[1]
+    df_coef[i - min_yr - anticipation, 6] <- confint(model, parm = did_name, level = 0.95)[2]
+    
+  }
+  
+  return(df_coef)
+}
