@@ -22,19 +22,10 @@ gc()
 ################################################################################################################+
 # MAIN PART ####
 
-main <- LOAD(dfinput = "main_banks_data")
+df_base <- LOAD(dfinput = "main_banks_data")
 setDT(main)
-main <- main[inrange(year, 2006, 2010)]
-
-# Restict to only two year in the dataset
-main_1y <- main[inrange(year, 2008, 2009)]
-main_2y <- main[year %in% c(2008, 2010)]
-main_3y <- main[year %in% c(2008, 2011)]
-
-# One year anticipation 
-main_1y_1a <- main[year %in% c(2007, 2008, 2009)]
-main_2y_1a <- main[year %in% c(2007, 2008, 2010)]
-main_3y_1a <- main[year %in% c(2007, 2008, 2011)]
+main <- df_base[inrange(year, 2006, 2010)]
+# main <- main[, id := 1:nrow(main)]
 
 main <-main[, state := as.factor(state)]
 # main <-main[, year := as.factor(year)]
@@ -661,5 +652,70 @@ confint(did1)
 
 # 11. Calculate the ATT ========================================================
 
+# Restict to only two year in the dataset
+main_1y <- main[inrange(year, 2008, 2009)]
+main_2y <- main[year %in% c(2008, 2010)]
+main_3y <- main[year %in% c(2008, 2011)]
 
+# One year anticipation 
+main_1y_1a <- main[year %in% c(2007, 2008, 2009)]
+main_2y_1a <- main[year %in% c(2007, 2008, 2010)]
+main_3y_1a <- main[year %in% c(2007, 2008, 2011)]
+
+formula_base <- as.formula(lead_ln_loan_amount ~ d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator | state | 0 | state)
+formula_ur <- as.formula(lead_ln_loan_amount ~ d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator  + ur + log_earnings| state | 0 | state)
+formula_ur_msa <- as.formula(lead_ln_loan_amount ~ d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator  + ur + log_earnings + d_msa| state | 0 | state)
+formula_lagur <- as.formula(lead_ln_loan_amount ~ d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator  + lag_ur + log_earnings + d_msa| state | 0 | state)
+formula_lagur_msa <- as.formula(lead_ln_loan_amount ~ d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator  + lag_ur + log_earnings + d_msa| state | 0 | state)
+
+# Change in stratgy: two functions
+# One for which the isolated effects are calculated for the period after the Great Recession
+# One for which I calculate the effects on after one 
+# in the end I only have to append them correctly
+
+df_coef <- data.frame(year = NA, anticipation = NA, att = NA, sd = NA, ci_lower = NA, ci_upper = NA)
+reference_year <- 2007
+post_yr <- 4
+
+SPECIFICATT <- function (data, reference_yr, max_yr, anticipation) { 
+  
+  # reference_yr <- 2007
+  # anticipation <- 0
+  # # i <- 2
+  # max_yr <- 2010
+  periods <- seq(reference_yr + 1, max_yr)
+  
+  for ( i in periods ) {
+  
+    if (anticipation >= 0 && i <= max_yr ) { 
+      # Define years to include: anticipation years before reference_yr, reference_yr itself, and reference_yr + i
+      years_to_include <- c(seq(reference_yr - anticipation, reference_yr), i)
+      
+      # Subset the data to only include rows with years in years_to_include
+      subset_main <- subset(data, year %in% years_to_include)
+      
+      # Fit the model with the subset data
+      model <- felm(formula_ur, data = subset_main, weights = 1 / subset_main$cnty_pop)
+      
+      # subset_main <- subset(main[year %in% c(2007, reference_yr + i )])
+      # model <- felm(formula_ur, data = subset_main, weights = 1 / subset_main$cnty_pop)
+    } else {
+      # Handle case when i exceeds max_yr or if anticipation is negative
+      stop("Invalid input: check the value of i or anticipation.")
+    }
+    
+  df_coef[i - reference_yr, 1] <- max(subset_main$year)
+  df_coef[i - reference_yr, 2] <- reference_yr - min(subset_main$year)
+  df_coef[i - reference_yr, 3] <- model$coefficients["d_median_all_pre:d_ffr_indicator",]
+  df_coef[i - reference_yr, 4] <- model$se["d_median_all_pre:d_ffr_indicator"]
+  df_coef[i - reference_yr, 5] <- confint(model, parm = "d_median_all_pre:d_ffr_indicator", level = 0.95)[1]
+  df_coef[i - reference_yr, 6] <- confint(model, parm = "d_median_all_pre:d_ffr_indicator", level = 0.95)[2]
+
+  }
+  return(df_coef)
+# summary(model)
+
+}
+
+results <- SPECIFICATT(data = main, reference_yr = 2007, max_yr = 2010, anticipation = 3)
 
