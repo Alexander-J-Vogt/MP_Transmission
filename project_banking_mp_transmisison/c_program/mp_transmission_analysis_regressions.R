@@ -673,14 +673,6 @@ covariate_list <- list(cov_base, cov_ur, cov_ur_msa)
 # Assign names for readability in results
 names(covariate_list) <- c("cov_base", "cov_ur", "cov_ur_msa")
 
-# Loop over names vector
-
-results_pre_no_anticipation <- lapply(covariate_list, PRETREATMENTATE, data = df_base, min_yr = 2004, max_yr = 2007, anticipation = 0 )
-
-results_post_no_anticipation <- lapply(formula_list, SPECIFICATE, data = df_base, reference_yr = 2007, max_yr = 2015, anticipation = 0 )
-
-combined_results <- map2(results_pre_no_anticipation, results_post_no_anticipation, bind_rows)
-
 # Define the range of anticipation values
 anticipation_values <- 0:2
 
@@ -705,9 +697,50 @@ combined_results_all <- setNames(
   paste0("anticipation_", anticipation_values)
 )
 
+anticipation_0 <- combined_results_all$anticipation_0
+anticipation_1 <- combined_results_all$anticipation_1
+anticipation_2 <- combined_results_all$anticipation_2
 
+ggdid <- function (dfx) {
 
+  plot <- ggplot(data = dfx, aes(x = year, y = att)) +
+    geom_point(color = "blue") +                         # Points for each ATE
+    geom_line(color = "blue", size = 0.7) +                          # Line connecting the points
+    geom_errorbar(aes(ymin = ci_lower, ymax = ci_upper), 
+                  width = 0.2, color = "red") +
+    labs(x = "Year",
+        y = "Average Treatment Effect",
+        title = "Average Treatment Effect",
+        subtitle = paste0("Anticipation of Event: ", unique(na.omit(dfx$anticipation)) ," years")) +
+    scale_x_continuous(breaks = seq(min(dfx$year), max(dfx$year), by = 1)) +
+    scale_y_continuous(breaks = seq(-0.25, 0.25, by = .05), limits = c(-0.25, 0.25)) +
+    theme(
+      plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+      plot.subtitle = element_text(size = 12, face = "italic", hjust = 0.5),
+      axis.text.x = element_text(angle = 45, hjust = 1),
+      axis.title = element_text(size = 12, face = "bold"),
+      legend.position = "bottom"
+    ) +
+    geom_hline(yintercept = 0, linetype = "solid", color = "black") +  # Horizontal line at y = 0
+    geom_vline(xintercept = 2007.5, linetype = "dashed", color = "black") +
+    theme_minimal()
+  
+  return(plot)
+}
+  
+test <- ggdid(dfx = anticipation_0$cov_ur)
 
+## 12. Run the final specification with a nicely formated stargazer table
+
+df_antcp0 <- df_base[inrange(year, 2007, 2010)]
+df_antcp1 <- df_base[inrange(year, 2006, 2010)]
+df_antcp2 <- df_base[inrange(year, 2005, 2010)]
+
+base_formel <- c("lead_ln_loan_amount ~ d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator")
+
+reg_base <- felm(as.formula(paste0(base_formel, " | state | 0 | state")), data = df_antcp1, weights = 1/main$cnty_pop)
+reg_cov <- felm(as.formula(paste0(base_formel, " + ur + log_earnings | state | 0 | state")), data = df_antcp1, weights = 1/main$cnty_pop)
+reg_cov_add <- felm(as.formula(paste0(base_formel, " + ur + log_earnings + d_msa| state | 0 | state")), data = df_antcp1, weights = 1/main$cnty_pop)
 
 
 
