@@ -761,12 +761,48 @@ stargazer(did1, did2, did3, did4, did5, did6,
             c("State FE:", "True", "True", "True", "True", "True", "True"),
             c("Clustered SE on State-Level:", "True", "True", "True", "True", "True", "True")# Custom row for dependent variable
           ),               # Exclude model names
-          omit.stat = c("LL", "ser", "f"),
+          omit.stat = c("LL", "ser", "f", "rsq"),
           no.space = FALSE,
           out = paste0(LATEX, "regression_main_results.tex") 
           )
 
-##
+#
+
+df_antcp0 <- df_base[inrange(year, 2013, 2016)]
+df_antcp1 <- df_base[inrange(year, 2012, 2016)]
+df_antcp2 <- df_base[inrange(year, 2010, 2016)]
+
+placebo_formel <- c("lead_ln_loan_amount ~ d_median_all_pre + d_placebo_2014 + d_median_all_pre:d_placebo_2014")
+
+did7 <- felm(as.formula(paste0(placebo_formel, " | state | 0 | state")), data = df_antcp0, weights = 1/df_antcp0$cnty_pop)
+did8 <- felm(as.formula(paste0(placebo_formel, " + ur + log_earnings | state | 0 | state")), data = df_antcp0, weights = 1/df_antcp0$cnty_pop)
+did9 <- felm(as.formula(paste0(placebo_formel, " + ur + log_earnings + d_msa| state | 0 | state")), data = df_antcp0, weights = 1/df_antcp0$cnty_pop)
+
+did10 <- felm(as.formula(paste0(placebo_formel, " | state | 0 | state")), data = df_antcp1, weights = 1/df_antcp1$cnty_pop)
+did11 <- felm(as.formula(paste0(placebo_formel, " + ur + log_earnings | state | 0 | state")), data = df_antcp1, weights = 1/df_antcp1$cnty_pop)
+did12 <- felm(as.formula(paste0(placebo_formel, " + ur + log_earnings + d_msa| state | 0 | state")), data = df_antcp1, weights = 1/df_antcp1$cnty_pop)
+
+# Stargazer table
+stargazer(did7, did8, did9, did10, did11, did12,
+          type = "text",
+          digits = 3,
+          title = "Regression Results: Leading Log Loan Amount",
+          column.labels = c("Anticipation: 0 Years", "Anticipation: 1 Years"),  # Headers for the first and last three columns
+          column.separate = c(3, 3), 
+          dep.var.labels.include = FALSE,        # Exclude automatic dependent variable label
+          model.names = FALSE,                   # Exclude model names
+          covariate.labels = c("Dummy: Market Concentration", "Dummy: Pseudo Time",
+                               "Unemployment Rate", "Log Earnings", "Dummy: MSA", "DiD Estimator"),
+          add.lines = list(
+            c("State FE:", "True", "True", "True", "True", "True", "True"),
+            c("Clustered SE on State-Level:", "True", "True", "True", "True", "True", "True")# Custom row for dependent variable
+          ),               # Exclude model names
+          omit.stat = c("LL", "ser", "f", "rsq"),
+          no.space = FALSE,
+          out = paste0(LATEX, "regression_placbo_post.tex") 
+)
+
+
 
 # Function to calculate post-treatment effects 
 data <- df_base
