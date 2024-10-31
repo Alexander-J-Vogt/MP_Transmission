@@ -39,7 +39,6 @@ gc()
 # List all merged files
 hmda_files <- list.files(paste0(TEMP, "/") , pattern = "merge")
 
-
 # Filter for all Commercial Banks
 # Core Problem less and less CB or their mortgage subdivisions are handing out 
 # mortgage after 2009, which is trend observed in the mortgage lending business.
@@ -66,13 +65,6 @@ hmda_banks[, lead_ln_wtd_loan_amount := shift(ln_wtd_loan_amount, type = "lead")
 # Select relevant variables
 hmda_banks[, c("cnty_pop", "us_pop", "wt_cnty_pop") := NULL]
 setcolorder(hmda_banks, c("year", "fips", "state"))
-
-# Drop observation in the year 2017, due to lead-lag
-# hmda_banks[year != 2017]
-
-
-# Exclude all missing observation from hmda_all
-# hmda_all <- hmda_all[!is.na(total_amount_loan)]
 
 # Save
 SAVE(dfx = hmda_banks, namex = "hmda_banks")
