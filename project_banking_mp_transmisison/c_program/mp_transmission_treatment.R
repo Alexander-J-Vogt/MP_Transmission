@@ -77,22 +77,9 @@ sod_hhi <- merge(sod_hhi, sod_hhi_pre, by = c("fips"))
 sod_hhi <- sod_hhi[, d_hhi_max := ifelse(mean_hhi == 10000, 1, 0)]
 sod_hhi <- sod_hhi[, d_hhi_max_pre := ifelse(mean_hhi_pre == 10000, 1, 0)]
 
-if (DEBUG) {
-  ggplot(sod_hhi) +
-    geom_density(aes(x = mean_hhi), color = "blue") +
-    geom_density(aes(x = mean_hhi_pre), color = "red") +
-    theme_minimal() +
-    labs(
-      title = "Density Plot of mean_hhi and mean_hhi_pre",
-      x = "HHI Values",
-      y = "Density"
-    )
-}
-
 # Merge the mean_hhi of each county, the dummy for perfect market concentration
 sod_highconc <- sod_hhi[, c("fips", "mean_hhi", "mean_hhi_pre", "d_hhi_max", "d_hhi_max_pre")]
 sod <- base::merge(sod, sod_highconc, by = "fips")
-
 
 # Create a dummy variable for each county that has a HHIby.x = # Create a dummy variable for each county that has a HHI of 10000 over all periods
 # sod_hhi <- sod_hhi[, d_hhi_10000 := ifelse(sod_hhi$fips %in% cnty_10000$fips, 1, 0)]
