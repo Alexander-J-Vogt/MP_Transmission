@@ -124,11 +124,6 @@ combined_sod <- combined_sod[, .(year, stcntybr, uninumbr, depsumbr, insured,
 
 # Clean variables depsumbr and sims_aquired_date from all special characters (This part can be potentially deleted)
 combined_sod <- combined_sod[, depsumbr := gsub(",", "", depsumbr)]
-# combined_sod <- combined_sod[, sims_acquired_date := 
-#                                ifelse(nchar(sims_acquired_date) > 1,
-#                                       substr(sims_acquired_date, nchar(sims_acquired_date) - 3, 
-#                                              nchar(sims_acquired_date)), 
-#                                       sims_acquired_date)]
 
 # Format the relevant variables to integers
 columns_to_convert <- c("year", "depsumbr", "msabr", "bkmo")
