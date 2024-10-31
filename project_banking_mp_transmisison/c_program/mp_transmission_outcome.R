@@ -38,8 +38,7 @@ gc()
 
 # List all merged files
 hmda_files <- list.files(paste0(TEMP, "/") , pattern = "merge")
-# hmda_files <- hmda_files[1:3]
-start_time <- Sys.time()
+
 # Basic Data Cleaning for two possible filters
 # a) Filter for all Commercial Banks
 # Core Problem less and less CB or their mortgage subdivisions are handing out 
@@ -50,8 +49,6 @@ mortgages_banks <- lapply(hmda_files, COUNTYLEVEL, instfilter = TRUE)
 # This dataset is collapses all loans within a county independently of the 
 # of financial institution. 
 # mortgages_all <- lapply(hmda_files, COUNTYLEVEL, instfilter = FALSE)
-end_time <- Sys.time()
-print(end_time - start_time)
 
 # Create the actual datasets
 hmda_banks <- bind_rows(mortgages_banks)
@@ -60,10 +57,6 @@ hmda_banks <- bind_rows(mortgages_banks)
 # 2. Create weights for counties
 pop_cnty <- LOAD(dfinput = "pop_cnty")
 setDT(pop_cnty)
-
-
-# pop_cnty[, us_pop := sum(cnty_pop), by = year] 
-# pop_cnty[, wt_cnty_pop := cnty_pop / us_pop]
 
 # Merge hmda dataset with population dataset
 hmda_banks <- merge(hmda_banks, pop_cnty, by = c("fips", "year"), all.x = TRUE)
