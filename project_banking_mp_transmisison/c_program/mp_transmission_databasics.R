@@ -490,7 +490,7 @@ setDT(pop_cnty_data)
 # Select relevant variables
 earnings_data <- earnings_data[, c("geography", "year", "quarter", "EarnBeg", "Emp")]
 
-# rename variables
+# Rename variables
 setnames(earnings_data, old = names(earnings_data), new = c("fips", "year", "quarter", "avg_monthly_earn", "tot_emp"))
 
 # Filter for only county observation and excluding average earnings for the US
@@ -538,6 +538,7 @@ SAVE(dfx = earnings_data, namex = "qwi_earnings")
 # Import data on GDP
 gdp_data <- read.csv(paste0(A, "d_fred/", "GDP.csv"))
 setDT(gdp_data)
+
 
 setnames(gdp_data, old = c("DATE", "GDP"), new = c("year", "gdp"))
 
