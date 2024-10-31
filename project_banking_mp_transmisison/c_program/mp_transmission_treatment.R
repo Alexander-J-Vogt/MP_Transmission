@@ -35,7 +35,7 @@ sod <- sod[, .(year, fips, state, county, depsumbr, rssdid)]
 setorder(sod, year, fips, rssdid)
 
 # Exclude all irrelevant time periods
-sod <-  sod[inrange(year, 2000 , 2017)]
+sod <-  sod[inrange(year, 2002 , 2016)]
 
 
 ## 1.2 Create HHI by county -----------------------------------------------------
@@ -65,36 +65,15 @@ sod <- sod[, .(hhi = sum(bank_market_share_sq)), by = .(fips, year)]
 # i) Creates and indicator for each county with an HHI of 10000
 # ii) Creates a dataset with the mean HHI of each county over all periods
 
-# Create dummy variable for counties with HHI of 10000. Counties with HHI 10000
-# are associated with rural areas like counties in Alaska, Nebraska, South Dakota etc,
-# There are 106 counties, which have this high market concentration over the whole period.
-
-# # Create vector with all counties of a HHI of 10000
-# sod_10000 <- sod[hhi == 10000]
-# sod_10000 <- unique(sod_10000, by = c("fips", "year"))
-# 
-# test <- COMPLETEOBS(data = sod_10000, rowx = "fips", colx = "year")
-# 
-# min <- min(sod_10000$year)
-# max <- max(sod_10000$year)
-# diff <- max - min + 1
-# # Check, which counties have HHI of 1000 over the whole period
-# sod_10000 <- sod_10000[, ones := 1]
-# sod_matrix <- dcast(sod_10000, fips ~ year, value.var = "ones", fill = 0)
-# conc_10000 <- sod_matrix[rowSums(sod_matrix[ , 2:ncol(sod_matrix), with = FALSE] > 0) == diff]
-# cnty_10000 <- sod[sod$fips %in% conc_10000$fips]
-# 
-# # Create dummy variable d_hhi_10000, which contains all counties with a HHI of 
-# # 10000 over the whole period
-# sod <- sod[, d_hhi_10000 := ifelse(sod$fips %in% cnty_10000$fips, 1, 0)]
-
-# Calculate the mean HHI for each county over the period 2004 to 2017
+# Calculate the mean HHI for each county over the period 2004 to 2008
 # Result: Contains observations on county-level (no annual data!)
 sod_hhi <- sod[, .(mean_hhi = mean(hhi)), by = fips]
 sod_hhi_pre <- sod[year >= 2004 & year <= 2008, .(mean_hhi_pre = mean(hhi)), by = fips]
 sod_hhi <- merge(sod_hhi, sod_hhi_pre, by = c("fips"))
 
-# Creating dummy variable for perfect market concentration
+# Create dummy variable for counties with HHI of 10000. Counties with HHI 10000
+# are associated with rural areas like counties in Alaska, Nebraska, South Dakota etc,
+# There are 106 counties, which have this high market concentration over the whole period.
 sod_hhi <- sod_hhi[, d_hhi_max := ifelse(mean_hhi == 10000, 1, 0)]
 sod_hhi <- sod_hhi[, d_hhi_max_pre := ifelse(mean_hhi_pre == 10000, 1, 0)]
 
@@ -214,14 +193,15 @@ SAVE(dfx = ffr_data, namex = "ffr_annual")
 treatment_data <- left_join(sod, ffr_data, by = c("year"))
 
 # 4. Placebo-Test Variables ====================================================
-treatment_data[, d_placebo_2001 := ifelse(year >= 2001, 1, 0)]
-treatment_data[, d_placebo_2002 := ifelse(year >= 2002, 1, 0)]
-treatment_data[, d_placebo_2003 := ifelse(year >= 2003, 1, 0)]
-treatment_data[, d_placebo_2011 := ifelse(year >= 2011, 1, 0)]
-treatment_data[, d_placebo_2012 := ifelse(year >= 2012, 1, 0)]
-treatment_data[, d_placebo_2013 := ifelse(year >= 2013, 1, 0)]
+
+# treatment_data[, d_placebo_2003 := ifelse(year >= 2003, 1, 0)]
+treatment_data[, d_placebo_2004 := ifelse(year >= 2004, 1, 0)]
+# treatment_data[, d_placebo_2005 := ifelse(year >= 2005, 1, 0)]
+# treatment_data[, d_placebo_2011 := ifelse(year >= 2011, 1, 0)]
+# treatment_data[, d_placebo_2012 := ifelse(year >= 2012, 1, 0)]
+# treatment_data[, d_placebo_2013 := ifelse(year >= 2013, 1, 0)]
 treatment_data[, d_placebo_2014 := ifelse(year >= 2014, 1, 0)]
-treatment_data[, d_placebo_2015 := ifelse(year >= 2015, 1, 0)]
+# treatment_data[, d_placebo_2015 := ifelse(year >= 2015, 1, 0)]
 
 
 # 5. Saving the dataset ========================================================
