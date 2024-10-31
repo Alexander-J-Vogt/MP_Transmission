@@ -65,35 +65,8 @@ complete_banks_data[, log_earnings := log(mean_earning)]
 complete_banks_data[, lag_log_earnings := shift(log_earnings, type = "lag"), by = fips]
 
 
-# 2. Dataset with Mortgages of all Financial Institutions ======================
 
-allfin_data <- LOAD(dfinput = "allfin_data_joined")
-# 2. All fin
-setDT(allfin_data)
-
-# Subset for the relevant period
-allfin_data <- allfin_data[inrange(year, start, end)]
-
-# # Only allow for observation with no missings
-# complete_allfin_data <- allfin_data[complete.cases(allfin_data),]
-# 
-# # Get counties, which are observed over the whole time period
-# check_cnty <- complete_allfin_data[, c("year", "fips")]
-# # check_control <- check_cnty[year == 2010]
-# 
-# # filter <- complete_data[year == 2010]
-# check_cnty <- check_cnty[, ones := 1]
-# check_cnty <- dcast(check_cnty, fips ~ year, value.var = "ones", fill = 0)
-# counties_full_obs <- check_cnty[rowSums(check_cnty[ , 2:ncol(check_cnty), with = FALSE]) == diff_year]
-# 
-# complete_allfin_data <- complete_allfin_data[fips %in% counties_full_obs$fips]
-
-# uniqueN(complete_allfin_data$fips)
-
-complete_allfin_data <- COMPLETEOBS(allfin_data, rowx = "fips", colx = "year")
-
-
-# 4. Save both datasets
+# 2. Save dataset
 SAVE(dfx = complete_allfin_data, namex = "main_allfin_data")
 
 SAVE(dfx = complete_banks_data, namex = "main_banks_data")
