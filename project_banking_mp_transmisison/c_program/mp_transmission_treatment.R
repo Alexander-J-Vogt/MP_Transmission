@@ -81,15 +81,6 @@ sod_hhi <- sod_hhi[, d_hhi_max_pre := ifelse(mean_hhi_pre == 10000, 1, 0)]
 sod_highconc <- sod_hhi[, c("fips", "mean_hhi", "mean_hhi_pre", "d_hhi_max", "d_hhi_max_pre")]
 sod <- base::merge(sod, sod_highconc, by = "fips")
 
-# Create a dummy variable for each county that has a HHIby.x = # Create a dummy variable for each county that has a HHI of 10000 over all periods
-# sod_hhi <- sod_hhi[, d_hhi_10000 := ifelse(sod_hhi$fips %in% cnty_10000$fips, 1, 0)]
-
-# # Create a dataset equal to sod_hhi but with counties with HHI = 10000 on county-level
-# sod_hhi_rest <- sod_hhi[d_hhi_10000 == 0]
-
-# # Calculate the mean HHI for each county in the main SOD dataset
-# sod <- sod[, mean_hhi := mean(hhi), by = fips]
-
 # 1.4 Create Treatment/Control Dummy Variables ----------------------------------
 
 # Create different dummy variables that divide the dataset into treatment and 
