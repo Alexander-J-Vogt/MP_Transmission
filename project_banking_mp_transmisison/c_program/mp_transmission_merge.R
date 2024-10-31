@@ -53,15 +53,5 @@ banks_data <- full_join(banks_data, controls_data, by = c("fips", "year"))
 # Save
 SAVE(dfx = banks_data, namex = "banks_data_joined")
 
-# 3. All Financial Institutions ================================================
-
-# Perform Full Join between Mortgage Data, treatment (SOD + FFR) & control data if 
-# mortgages of all financial institutions are allowed
-allfin_data <- full_join(outcome_all_data, treatment_data, by = c("fips", "year"))
-allfin_data <- full_join(allfin_data, controls_data, by = c("fips", "year"))
-
-# SAVE
-SAVE(dfx = allfin_data, namex = "allfin_data_joined")
-
 
 ########################## ENDE ###############################################+
