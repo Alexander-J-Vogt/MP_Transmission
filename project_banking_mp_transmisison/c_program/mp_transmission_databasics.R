@@ -259,6 +259,7 @@ lapply(lra_files, function(file) {
 # This loop imports panel data 
 purrr::walk(panel_files, function(file) {
   
+  # Get year of panel
   year <- as.integer(gsub("[^0-9]", "", file))
   
   # Check which year of the data is imported and adjust the column names.
@@ -284,6 +285,7 @@ purrr::walk(panel_files, function(file) {
   
   # Select the relevant variables
   data <- data[, c("respondent_id", "agency_code", "other_lender_code")]
+  
   # get rid off any duplicants
   data <- unique(data, by = c("respondent_id", "agency_code"))
   
@@ -339,9 +341,6 @@ purrr::walk(2000:2017, function(i) {
   rm(list = c(paste0("hmda_lra_", i), paste0("hmda_panel_", i), "main", "dflra", "dfpanel"))
   gc()
 })
-
-end_time <- Sys.time()
-print(end_time - start_time)
 
 # 4. Federal Funds Rate ========================================================
 
