@@ -188,12 +188,12 @@ sod_banks <- combined_sod[insured == "CB"]
 sod_banks <- sod_banks[, insured := NULL]
 
 # ii. All available financial institutions
-sod_all <- combined_sod
-sod_all[, insured := NULL]
+# sod_all <- combined_sod
+# sod_all[, insured := NULL]
 
 # Save Combined (raw)NULL# Save Combined (raw) SOD dataset
 SAVE(dfx = sod_banks, namex = "banks_sod")
-SAVE(dfx = sod_all, namex =  "all_sod")
+# SAVE(dfx = sod_all, namex =  "all_sod")
 
 # Clear Global Environment
 rm(list = c("combined_sod", "sod_banks", "sod_all", "fips_data"))
@@ -214,13 +214,6 @@ lra_files <- list.files(paste0(A, "a_hdma_lra/"))
 lra_files <- lra_files[gsub("[^0-9]", "", lra_files) %in% c(2000:2017)]
 panel_files <- list.files(paste0(A, "b_hdma_panel/"))
 panel_files <- panel_files[gsub("[^0-9]", "", panel_files) %in% c(2000:2017)]
-if (DEBUG) {
-lra_files <- lra_files[1]
-panel_files <- panel_files[1]
-}
-
-start_time <- Sys.time()
-
 
 # # 3.2 Import LRA files -------------------------------------------------------
 
@@ -265,7 +258,7 @@ lapply(lra_files, function(file) {
 
 # This loop imports panel data 
 purrr::walk(panel_files, function(file) {
-   # file <- panel_files[12]
+  
   year <- as.integer(gsub("[^0-9]", "", file))
   
   # Check which year of the data is imported and adjust the column names.
