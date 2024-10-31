@@ -47,7 +47,8 @@ mortgages_banks <- lapply(hmda_files, COUNTYLEVEL, instfilter = TRUE)
 # Create the actual datasets
 hmda_banks <- bind_rows(mortgages_banks)
 
-# 2. Create weights for counties
+# 2. Creating Variable =========================================================
+# Create weights for counties
 pop_cnty <- LOAD(dfinput = "pop_cnty")
 setDT(pop_cnty)
 
