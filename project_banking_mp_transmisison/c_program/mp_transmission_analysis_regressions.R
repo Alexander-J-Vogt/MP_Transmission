@@ -766,18 +766,21 @@ stargazer(did1, did2, did3, did4, did5, did6,
           out = paste0(LATEX, "regression_main_results.tex") 
           )
 
-#
+# 13. Placebo in Post-Treatment Period =========================================
 
+# Restrict Period according to anticipation period & three periods after treatment
 df_antcp0 <- df_base[inrange(year, 2013, 2016)]
 df_antcp1 <- df_base[inrange(year, 2012, 2016)]
-df_antcp2 <- df_base[inrange(year, 2010, 2016)]
 
+# Placebo Formula
 placebo_formel <- c("lead_ln_loan_amount ~ d_median_all_pre + d_placebo_2014 + d_median_all_pre:d_placebo_2014")
 
+# Regression for no anticipation
 did7 <- felm(as.formula(paste0(placebo_formel, " | state | 0 | state")), data = df_antcp0, weights = 1/df_antcp0$cnty_pop)
 did8 <- felm(as.formula(paste0(placebo_formel, " + ur + log_earnings | state | 0 | state")), data = df_antcp0, weights = 1/df_antcp0$cnty_pop)
 did9 <- felm(as.formula(paste0(placebo_formel, " + ur + log_earnings + d_msa| state | 0 | state")), data = df_antcp0, weights = 1/df_antcp0$cnty_pop)
 
+# Regression for one year of anticipation
 did10 <- felm(as.formula(paste0(placebo_formel, " | state | 0 | state")), data = df_antcp1, weights = 1/df_antcp1$cnty_pop)
 did11 <- felm(as.formula(paste0(placebo_formel, " + ur + log_earnings | state | 0 | state")), data = df_antcp1, weights = 1/df_antcp1$cnty_pop)
 did12 <- felm(as.formula(paste0(placebo_formel, " + ur + log_earnings + d_msa| state | 0 | state")), data = df_antcp1, weights = 1/df_antcp1$cnty_pop)
@@ -786,12 +789,12 @@ did12 <- felm(as.formula(paste0(placebo_formel, " + ur + log_earnings + d_msa| s
 stargazer(did7, did8, did9, did10, did11, did12,
           type = "text",
           digits = 3,
-          title = "Regression Results: Leading Log Loan Amount",
+          title = "Placebo Results for Post Treatment Period: Leading Log Loan Amount",
           column.labels = c("Anticipation: 0 Years", "Anticipation: 1 Years"),  # Headers for the first and last three columns
           column.separate = c(3, 3), 
           dep.var.labels.include = FALSE,        # Exclude automatic dependent variable label
           model.names = FALSE,                   # Exclude model names
-          covariate.labels = c("Dummy: Market Concentration", "Dummy: Pseudo Time",
+          covariate.labels = c("Dummy: Market Concentration", "Dummy: Placebo Treatment 2014",
                                "Unemployment Rate", "Log Earnings", "Dummy: MSA", "DiD Estimator"),
           add.lines = list(
             c("State FE:", "True", "True", "True", "True", "True", "True"),
@@ -799,19 +802,49 @@ stargazer(did7, did8, did9, did10, did11, did12,
           ),               # Exclude model names
           omit.stat = c("LL", "ser", "f", "rsq"),
           no.space = FALSE,
-          out = paste0(LATEX, "regression_placbo_post.tex") 
+          out = paste0(LATEX, "regression_placebo_post.tex") 
 )
 
 
+# 14. Placebo in Pre-Treatment Period ==========================================
 
-# Function to calculate post-treatment effects 
-data <- df_base
-anticipation <- 1
-i <- 2009
-min_yr <- 2004
-max_yr <- 2007
-# period <- 2005
-covx <-  c("ur + log_earnings")
+# Restrict Period according to anticipation period & three periods after treatment
+df_antcp0 <- df_base[inrange(year, 2003, 2006)]
+df_antcp1 <- df_base[inrange(year, 2002, 2006)]
+
+# Placebo Formula
+placebo_formel <- c("lead_ln_loan_amount ~ d_median_all_pre + d_placebo_2004 + d_median_all_pre:d_placebo_2004")
+
+# Regression for no anticipation
+did13 <- felm(as.formula(paste0(placebo_formel, " | state | 0 | state")), data = df_antcp0, weights = 1/df_antcp0$cnty_pop)
+did14 <- felm(as.formula(paste0(placebo_formel, " + ur + log_earnings | state | 0 | state")), data = df_antcp0, weights = 1/df_antcp0$cnty_pop)
+did15 <- felm(as.formula(paste0(placebo_formel, " + ur + log_earnings + d_msa| state | 0 | state")), data = df_antcp0, weights = 1/df_antcp0$cnty_pop)
+
+# Regression for one year of anticipation
+did16 <- felm(as.formula(paste0(placebo_formel, " | state | 0 | state")), data = df_antcp1, weights = 1/df_antcp1$cnty_pop)
+did17 <- felm(as.formula(paste0(placebo_formel, " + ur + log_earnings | state | 0 | state")), data = df_antcp1, weights = 1/df_antcp1$cnty_pop)
+did18 <- felm(as.formula(paste0(placebo_formel, " + ur + log_earnings + d_msa| state | 0 | state")), data = df_antcp1, weights = 1/df_antcp1$cnty_pop)
+
+# Stargazer table
+stargazer(did13, did14, did15, did16, did17, did18,
+          type = "text",
+          digits = 3,
+          title = "Placebo Results for Pre Treatment Period: Leading Log Loan Amount",
+          column.labels = c("Anticipation: 0 Years", "Anticipation: 1 Years"),  # Headers for the first and last three columns
+          column.separate = c(3, 3), 
+          dep.var.labels.include = FALSE,        # Exclude automatic dependent variable label
+          model.names = FALSE,                   # Exclude model names
+          covariate.labels = c("Dummy: Market Concentration", "Dummy: Placebo Treatment 2004",
+                               "Unemployment Rate", "Log Earnings", "Dummy: MSA", "DiD Estimator"),
+          add.lines = list(
+            c("State FE:", "True", "True", "True", "True", "True", "True"),
+            c("Clustered SE on State-Level:", "True", "True", "True", "True", "True", "True")# Custom row for dependent variable
+          ),               # Exclude model names
+          omit.stat = c("LL", "ser", "f", "rsq"),
+          no.space = FALSE
+          # ,
+          # out = paste0(LATEX, "regression_placebo_pre.tex") 
+)
 
 
 
