@@ -156,9 +156,6 @@ ffr_data <- ffr_data[, d_ffr_last := as.integer(ifelse(ffr_last < 2, 1, 0))]
 # Great Recession unfolded.
 ffr_data <- ffr_data[, d_ffr_indicator := as.integer(ifelse(year >= 2008, 1, 0))]
 
-# # Restrict the data to the period 
-# ffr_data <- ffr_data[inrange(year, 2004, 2020)]
-
 # Reduce dataset to yearly dataset
 ffr_data <- unique(ffr_data, by = c("year"))
 
