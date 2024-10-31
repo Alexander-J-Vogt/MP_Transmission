@@ -501,10 +501,6 @@ earnings_data <- earnings_data[nchar(fips) == 5]
 earnings_data <- earnings_data[, state := substr(fips, 1, 2)]
 earnings_data <- earnings_data[!(state %in% c("72", "66", "60", "69", "74", "78"))]
 
-# earnings_data <- earnings_data[, mean_earnings := base::mean(avg_monthly_earn), by = .(fips, year)]
-# earnings_data <- earnings_data[, quarter := as.integer(quarter)]
-# earnings_data <- earnings_data[, quarter_date := as.Date(paste0(year, "-", (quarter - 1) * 3 + 1, "-01"), format = "%Y-%m-%d")]
-
 # Calculate the mean of the avergae monthly earning of a quarter in order to 
 # an annual measure for the average monthly earnings within a county and a year
 earnings_data <- earnings_data[, avg_monthly_earn := as.integer(avg_monthly_earn)]
@@ -514,7 +510,6 @@ earnings_data <- earnings_data[, mean_earning := base::mean(avg_monthly_earn, na
 # an annual measure for the total employment  within a county and a year
 earnings_data <- earnings_data[, tot_emp := as.integer(tot_emp)]
 earnings_data <- earnings_data[, mean_emp := base::mean(tot_emp, na.rm = TRUE), by = .(fips, year)]
-# test <- earnings_data[, mean_emp := zoo::na.approx(mean_emp, x = year, na.rm = TRUE), by = fips]
 
 # Collapse the data to county and year level
 earnings_data <- unique(earnings_data, by = c("fips", "year"))
@@ -539,15 +534,18 @@ SAVE(dfx = earnings_data, namex = "qwi_earnings")
 gdp_data <- read.csv(paste0(A, "d_fred/", "GDP.csv"))
 setDT(gdp_data)
 
-
+# cahnge names 
 setnames(gdp_data, old = c("DATE", "GDP"), new = c("year", "gdp"))
 
+# format variables
 gdp_data <- gdp_data[, year := year(year)]
 gdp_data <- gdp_data[, gdp := as.numeric(gdp)]
-gdp_data <- gdp_data[, gdp_lag := shift(gdp, type = "lag")]
 
+# create lag and growth variable
+gdp_data <- gdp_data[, gdp_lag := shift(gdp, type = "lag")]
 gdp_data <- gdp_data[, gdp_growth := (gdp - gdp_lag) / gdp_lag * 100]
 
+# Save 
 SAVE(dfx = gdp_data, namex = "gdp_data")
 
 
