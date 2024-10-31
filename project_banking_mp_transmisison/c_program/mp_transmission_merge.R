@@ -30,12 +30,8 @@ gc()
 outcome_banks_data <- LOAD(dfinput = "hmda_banks")
 setDT(outcome_banks_data)
 
+# Delete year 2007 due to variable that got leaded 
 outcome_banks_data[year != 2017]
-
-
-# b) Dataset that includes all financial institutions that lend mortgage
-outcome_all_data <- LOAD(dfinput = "hmda_all")
-setDT(outcome_all_data)
 
 # Loading treatment data from Treatment Script
 # (important as this contains counties, which are observed over all time periods in the SOD)
