@@ -682,11 +682,11 @@ combined_results_all <- setNames(
     
     # Run pre-treatment analysis
     results_pre <- lapply(covariate_list, PRETREATMENTATE, data = df_base, 
-                          min_yr = 2004, max_yr = 2007, anticipation = anticipation)
+                          min_yr = 2005, max_yr = 2007, anticipation = anticipation)
     
     # Run post-treatment analysis
     results_post <- lapply(formula_list, SPECIFICATE, data = df_base, 
-                           reference_yr = 2007, max_yr = 2015, anticipation = anticipation)
+                           reference_yr = 2007, max_yr = 2012, anticipation = anticipation)
     
     # Combine pre and post results for each covariate/formula setting
     combined_results <- map2(results_pre, results_post, bind_rows)
@@ -697,21 +697,24 @@ combined_results_all <- setNames(
   paste0("anticipation_", anticipation_values)
 )
 
+# Saving list element into more accessible object
 anticipation_0 <- combined_results_all$anticipation_0
 anticipation_1 <- combined_results_all$anticipation_1
 anticipation_2 <- combined_results_all$anticipation_2
 
 ggdid <- function (dfx) {
 
+  # Formatting a Graph for the Average Treatment Effect by Period
   plot <- ggplot(data = dfx, aes(x = year, y = att)) +
-    geom_point(color = "blue") +                         # Points for each ATE
-    geom_line(color = "blue", size = 0.7) +                          # Line connecting the points
+    geom_point(color = "blue") +                         
+    geom_line(color = "blue", size = 0.7) +                          
     geom_errorbar(aes(ymin = ci_lower, ymax = ci_upper), 
                   width = 0.2, color = "red") +
     labs(x = "Year",
         y = "Average Treatment Effect",
         title = "Average Treatment Effect",
-        subtitle = paste0("Anticipation of Event: ", unique(na.omit(dfx$anticipation)) ," years")) +
+        subtitle = paste0("Anticipation of Event: ", unique(na.omit(dfx$anticipation)) ," years")
+        ) +
     scale_x_continuous(breaks = seq(min(dfx$year), max(dfx$year), by = 1)) +
     scale_y_continuous(breaks = seq(-0.25, 0.25, by = .05), limits = c(-0.25, 0.25)) +
     theme(
@@ -719,22 +722,30 @@ ggdid <- function (dfx) {
       plot.subtitle = element_text(size = 12, face = "italic", hjust = 0.5),
       axis.text.x = element_text(angle = 45, hjust = 1),
       axis.title = element_text(size = 12, face = "bold"),
-      legend.position = "bottom"
+      legend.position = "bottom",
+      plot.title.position = "plot" 
     ) +
-    geom_hline(yintercept = 0, linetype = "solid", color = "black") +  # Horizontal line at y = 0
+    geom_hline(yintercept = 0, linetype = "solid", color = "black") + 
     geom_vline(xintercept = 2007.5, linetype = "dashed", color = "black") +
     theme_minimal()
   
+  # Return plot
   return(plot)
 }
-  
-test <- ggdid(dfx = anticipation_0$cov_ur)
+
+# Creating Graphs
+gg_anticp0 <- ggdid(dfx = anticipation_0$cov_base)
+gg_anticp1 <- ggdid(dfx = anticipation_1$cov_ur)
+
+# Saving as pdf
+pdf(paste0(FIGURE, "did_graph_full_specifciation.pdf"), width = 14, height = 7)
+grid.arrange(gg_anticp0, gg_anticp1, ncol = 2)
+dev.off()
 
 ## 12. Final specification with a formatted stargazer table ====================
 
 df_antcp0 <- df_base[inrange(year, 2007, 2010)]
 df_antcp1 <- df_base[inrange(year, 2006, 2010)]
-df_antcp2 <- df_base[inrange(year, 2005, 2010)]
 
 base_formel <- c("lead_ln_loan_amount ~ d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator")
 
@@ -751,7 +762,7 @@ stargazer(did1, did2, did3, did4, did5, did6,
           type = "text",
           digits = 3,
           title = "Regression Results: Leading Log Loan Amount",
-          column.labels = c("Anticipation: 0 Years", "Anticipation: 1 Years"),  # Headers for the first and last three columns
+          column.labels = c("Anticipation: 0 Years", "Anticipation: 1 Year"),  # Headers for the first and last three columns
           column.separate = c(3, 3), 
           dep.var.labels.include = FALSE,        # Exclude automatic dependent variable label
           model.names = FALSE,                   # Exclude model names
@@ -790,7 +801,7 @@ stargazer(did7, did8, did9, did10, did11, did12,
           type = "text",
           digits = 3,
           title = "Placebo Results for Post Treatment Period: Leading Log Loan Amount",
-          column.labels = c("Anticipation: 0 Years", "Anticipation: 1 Years"),  # Headers for the first and last three columns
+          column.labels = c("Anticipation: 0 Years", "Anticipation: 1 Year"),  # Headers for the first and last three columns
           column.separate = c(3, 3), 
           dep.var.labels.include = FALSE,        # Exclude automatic dependent variable label
           model.names = FALSE,                   # Exclude model names
@@ -830,7 +841,7 @@ stargazer(did13, did14, did15, did16, did17, did18,
           type = "text",
           digits = 3,
           title = "Placebo Results for Pre Treatment Period: Leading Log Loan Amount",
-          column.labels = c("Anticipation: 0 Years", "Anticipation: 1 Years"),  # Headers for the first and last three columns
+          column.labels = c("Anticipation: 0 Years", "Anticipation: 1 Year"),  # Headers for the first and last three columns
           column.separate = c(3, 3), 
           dep.var.labels.include = FALSE,        # Exclude automatic dependent variable label
           model.names = FALSE,                   # Exclude model names
@@ -841,9 +852,8 @@ stargazer(did13, did14, did15, did16, did17, did18,
             c("Clustered SE on State-Level:", "True", "True", "True", "True", "True", "True")# Custom row for dependent variable
           ),               # Exclude model names
           omit.stat = c("LL", "ser", "f", "rsq"),
-          no.space = FALSE
-          # ,
-          # out = paste0(LATEX, "regression_placebo_pre.tex") 
+          no.space = FALSE,
+          out = paste0(LATEX, "regression_placebo_pre.tex")
 )
 
 
