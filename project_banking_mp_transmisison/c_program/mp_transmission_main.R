@@ -60,15 +60,15 @@ for (i in lagged_var) {
 # Calculate the change in earnings
 complete_banks_data[, delta_earnings := mean_earning - shift(mean_earning, type = "lag")]
 
-# Creating log mean_earnings in order to get normally distributed variables ====
+# Creating log mean_earnings in order to get normally distributed variables 
 complete_banks_data[, log_earnings := log(mean_earning)]
 complete_banks_data[, lag_log_earnings := shift(log_earnings, type = "lag"), by = fips]
 
 
 
-# 2. Save dataset
-SAVE(dfx = complete_allfin_data, namex = "main_allfin_data")
+# 2. Save dataset ==============================================================
 
+# Save dataset
 SAVE(dfx = complete_banks_data, namex = "main_banks_data")
 
 
