@@ -137,18 +137,12 @@ combined_sod <- combined_sod[, specdesc := gsub("<", "lower", specdesc)]
 combined_sod <- combined_sod[, specdesc := gsub("-", "_", specdesc)]
 combined_sod <- combined_sod[, specdesc := gsub("\\$", "", specdesc)]
 
-# Restrict the dataset the year 2000 to 2020
-# combined_sod <- combined_sod[between(year, 2000, 2017)]
-
-# Create fips-code by combining the state and county code (USE FIPSCREATOR!)
+# Create fips-code by combining the state and county code
 combined_sod <- combined_sod[stnumbr != "" & cntynumb != ""]
 combined_sod <- combined_sod[, stnumbr := ifelse(nchar(stnumbr) == 1, paste0("0", stnumbr), stnumbr)]
 combined_sod <- combined_sod[, cntynumb := ifelse(nchar(cntynumb) == 2, paste0("0", cntynumb), cntynumb)]
 combined_sod <- combined_sod[, cntynumb := ifelse(nchar(cntynumb) == 1, paste0("00", cntynumb), cntynumb)]
 combined_sod <- combined_sod[, fips := paste0(stnumbr, cntynumb)]
-
-test <- combined_sod
-combined_sod <- test
 
 # Excluding the following US territories as they are not relevant for the analysis: 
 # Puerto Rico (72), US Virgin Islands (78), American Samoa (60), 
@@ -186,12 +180,6 @@ setnames(combined_sod, old = c("stnumbr", "cntynumb"), new = c("state", "county"
 setcolorder(combined_sod,c("year", "fips", "state"))
 combined_sod[, stcntybr := NULL]
 
-# 
-# if (DEBUG) {
-#   setDT(combined_sod)
-#   sod_mortgage <- combined_sod[SPECDESC == "MORTGAGE LENDING"]
-#   sod_mortgage <- sod_mortgage["YEAR", ]
-# }
 ## 2.4 Save datasets  ----------------------------------------------------------
 
 # Create two different datasets
