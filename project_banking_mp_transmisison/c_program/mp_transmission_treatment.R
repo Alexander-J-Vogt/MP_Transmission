@@ -172,15 +172,9 @@ treatment_data <- left_join(sod, ffr_data, by = c("year"))
 
 # 4. Placebo-Test Variables ====================================================
 
-# treatment_data[, d_placebo_2003 := ifelse(year >= 2003, 1, 0)]
+# Create placebo variables
 treatment_data[, d_placebo_2004 := ifelse(year >= 2004, 1, 0)]
-# treatment_data[, d_placebo_2005 := ifelse(year >= 2005, 1, 0)]
-# treatment_data[, d_placebo_2011 := ifelse(year >= 2011, 1, 0)]
-# treatment_data[, d_placebo_2012 := ifelse(year >= 2012, 1, 0)]
-# treatment_data[, d_placebo_2013 := ifelse(year >= 2013, 1, 0)]
 treatment_data[, d_placebo_2014 := ifelse(year >= 2014, 1, 0)]
-# treatment_data[, d_placebo_2015 := ifelse(year >= 2015, 1, 0)]
-
 
 # 5. Saving the dataset ========================================================
 
