@@ -381,37 +381,26 @@ lapply(outcome_var, function (x) {
 # 8. Employment & Population density ===========================================
 
 lapply(outcome_var, function (x) {
-  # x <- outcome_var[1]
-  did1 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator | state | 0 | state")), data = main)
-  did2 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + mean_emp | state | 0 | state")), data = main)
-  did3 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + lag(mean_emp) | state | 0 | state")), data = main)
-  did4 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + log_emp | state | 0 | state")), data = main)
-  did5 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + lag_log_emp | state | 0 | state")), data = main)
-  did6 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + cnty_pop | state | 0 | state")), data = main)
-  did7 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + pop_density | state | 0 | state")), data = main)
+
+  did1 <- felm(as.formula(paste0(x,  "~" , did_median, " | state | 0 | state")), data = main)
+  did2 <- felm(as.formula(paste0(x,  "~" , did_median, " + mean_emp | state | 0 | state")), data = main)
+  did3 <- felm(as.formula(paste0(x,  "~" , did_median, " + lag(mean_emp) | state | 0 | state")), data = main)
+  did4 <- felm(as.formula(paste0(x,  "~" , did_median, " + log_emp | state | 0 | state")), data = main)
+  did5 <- felm(as.formula(paste0(x,  "~" , did_median, " + cnty_pop | state | 0 | state")), data = main)
+  did6 <- felm(as.formula(paste0(x,  "~" , did_median, " + pop_density | state | 0 | state")), data = main)
   
-  stargazer(did1, did2, did3, did4, did5, did6, did7, 
+  stargazer(did1, did2, did3, did4, did5, did6,  
             type = "text",
             title = paste0("Results: ", gsub("_", " ", x)),
             column.labels = c("Base", "Cntrl 1",  "Cntrl 2",  "Cntrl 3", "Cntrl 4", "Cntrl 5", "Cntrl 6"),
-            covariate.labels = c("Dummy: HHI MC", "Dummy: Before GR", "Employment", "lag Employment", "log Employment", "lag log Emploment", "County Population", "Population Density in County",  "DiD Estimator"),
+            covariate.labels = c("Dummy: HHI MC", "Dummy: Before GR", "Employment", "lag Employment", "log Employment", "County Population", "Population Density in County",  "DiD Estimator"),
             dep.var.labels = c(rep(gsub("_", " ", ""),7))
-            ,
-            out = paste0(LATEX, x, "_emp_pop.html")
-            # no.space = TRUE,  # Removes extra spaces for better formatting
-            # digits = 2       # Rounds coefficients to 2 decimal places
   )
-  
-  # tinytex::latexmk(paste0(LATEX, x, ".tex"))
-  
 })
 
 
 
 # 9. Testing the need for clustered-se =========================================
-
-library(sandwich)
-library(lmtest)
 
 formula1 <- as.formula(lead_ln_loan_amount ~ d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator)
 formula2 <- as.formula(lead_ln_loan_amount ~ d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + cnty_pop)
@@ -429,6 +418,8 @@ formula <- c("formula1", "formula2", "formula3", "formula4", "formula5", "formul
 # Hausman Test for Fixed vs Random Fixed Effects 
 pmain <- pdata.frame(main, index = c("fips", "year"))
 
+# Comparing fixed effect model with random effect model 
+# if significant than this is an indicator that clusters are needed
 for (i in formula) {
   fixed_model <- plm(get(i), data = pmain, model = "within")
   random_model <- plm(get(i), data = pmain, model = "random")
@@ -436,23 +427,7 @@ for (i in formula) {
   test <- plmtest(fixed_model, effect = "individual", type = "bp") 
   print(paste0("Test Results: ", i))
   print(test)
-  # Standard errors without clustering
-  # non_clustered_se <- coeftest(fixed_model, vcov = vcovHC(fixed_model, type = "HC1"))
-  # 
-  # # Clustered standard errors at the state level
-  # clustered_se <- coeftest(fixed_model, vcov = vcovHC(fixed_model, cluster = "group"))
-  # 
-  # print(paste0("Analysis of ", i))
-  # print(non_clustered_se)
-  # print(clustered_se)
-
 }
-
-ggplot() +
-  geom_density(data = main, aes(x = log(mean_emp)))
-
-ggplot() +
-  geom_density(data = main, aes(x = mean_emp))
 
 # 10. Final Assessment of the Control Variables ================================
 
