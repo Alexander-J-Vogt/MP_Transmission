@@ -153,18 +153,21 @@ for (i in seq_along(mean_value_plots)) {
 }
 
 
-# Descriptive Statistics of yearly data ========================================
+# 4. Descriptive Statistics of yearly data =====================================
 
+# Restrict data to relevant variables
 des_stats <- main_banks_data[, c("year", "total_amount_loan", "lead_ln_loan_amount", 
                                  "hhi", "cnty_pop", "pop_density", "mean_earning", "log_earnings",
-                                 "mean_emp", "ur", "lag_ur","log_emp", "lag_log_emp")]
+                                 "mean_emp", "ur", "lag_ur","log_emp")]
 
-key_var <- c("total_amount_loan", "hhi", "cnty_pop", "mean_earning", "mean_emp", "ur")
+# Vector with relevant variable names
+update_key_var <- c("lead_ln_loan_amount", "hhi", "cnty_pop", "pop_density", "ur", 
+                    "lag_ur", "mean_emp", "log_emp", "mean_earning", "log_earnings")
 
-update_key_var <- c("lead_ln_loan_amount", "hhi", "cnty_pop", "pop_density", "ur", "lag_ur", "mean_emp", "log_emp", "lag_log_emp", "mean_earning", "log_earnings")
-
+# Initate empty list
 descriptive_stats <- list()
 
+# Get descriptive statistics by variable and year
 descriptive_stats <- lapply(update_key_var, function(var) {
   des_stats[, .(
     mean = mean(get(var), na.rm = TRUE),
@@ -176,6 +179,7 @@ descriptive_stats <- lapply(update_key_var, function(var) {
   ), by = year]
 })
 
+# name element lists
 names(descriptive_stats) <- update_key_var
 
 # Correlation of variables by year and pooled ==================================
@@ -195,7 +199,7 @@ pooled_correlation <- cor(des_stats[, ..update_key_var],use = "complete.obs")
 
 # Print the pooled correlation table
 print(pooled_correlation)
-library(corrplot)
+
 # Optional: Visualize the pooled correlation matrix
 png(paste0(FIGURE, "correlation_plot.png"), width = 800, height = 600)
 corrplot(pooled_correlation, method = "number", type = "lower", tl.col = "black", tl.srt = 45)
