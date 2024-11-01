@@ -24,10 +24,12 @@ gc()
 
 # 0. Import the main datasets ==================================================
 
-main_allfin_data <- LOAD(dfinput = "main_allfin_data")
+# Load main dataset
 main_banks_data <- LOAD(dfinput = "main_banks_data")
-load(paste0(TEMP, "/", "fips_data.rda"))
 setDT(main_banks_data)
+
+# Load dataset on all counties by fips
+load(paste0(TEMP, "/", "fips_data.rda"))
 
 # 1. Analyse the attrition of counties =========================================
 
