@@ -81,14 +81,25 @@ ggsave(filename = paste0(FIGURE, "graph_ffr.png"), plot = graph_ffr, device = "p
 
 
 # 2. GDP Time Line =============================================================
+
+# Load data on GDP of U.S.
 gdp_data <- LOAD(dfinput = "gdp_data")
 setDT(gdp_data)
+
+# Restrict and format variables
 gdp_data <- gdp_data[, year := as.numeric(year)]
 gdp_data <- gdp_data[year >= 1995 & year <= 2020]
 
+# Simple plot that is not getting exported
 ggplot() +
+  
+  # Plotting gdp
   geom_line(data = gdp_data, aes(year, gdp_growth), size = 1) +
+  
+  # use minimal design
   theme_minimal() +
+  
+  # Adjust x- and y axid
   scale_y_continuous(breaks = seq(-2, 7, by = 1)) +
   scale_x_continuous(breaks = seq(min(gdp_data$year), max(gdp_data$year), by = 1)) +
   
