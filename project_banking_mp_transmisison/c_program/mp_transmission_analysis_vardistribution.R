@@ -56,7 +56,7 @@ table(check_dist$d_marketdef_all)
 # Treated counties: 792  and Control Counties: 1978 
 table(check_dist$d_q70_all)
 
-# 3. Check the Descriptive Statistics ==========================================
+# 2. Check the Descriptive Statistics ==========================================
 
 # List most important variables
 vars <- c("hhi", "total_amount_loan", "cnty_pop", "ur", "mean_earning", "mean_emp")  # List of variables to summarize
@@ -115,7 +115,7 @@ for (i in seq_along(mean_value_plots)) {
 }
 
 
-# 4. Descriptive Statistics of yearly data =====================================
+# 3. Descriptive Statistics of yearly data =====================================
 
 # Restrict data to relevant variables
 des_stats <- main_banks_data[, c("year", "total_amount_loan", "lead_ln_loan_amount", 
@@ -144,7 +144,7 @@ descriptive_stats <- lapply(update_key_var, function(var) {
 # name element lists
 names(descriptive_stats) <- update_key_var
 
-# 5. Correlation of variables by year and pooled [SAVED PLOT] ==================
+# 4. Correlation of variables by year and pooled [SAVED PLOT] ==================
 
 # Calculate correlation tables for all variables in key_var for each year and pooled correlation
 correlation_tables <- lapply(unique(des_stats$year), function(yr) {
@@ -166,7 +166,7 @@ png(paste0(FIGURE, "correlation_plot.png"), width = 800, height = 600)
 corrplot(pooled_correlation, method = "number", type = "lower", tl.col = "black", tl.srt = 45)
 dev.off()
 
-# 6. Density of Earning ========================================================
+# 5. Density of Earning ========================================================
 
 # Density plot for earnings and log earnings
 ggplot() +
