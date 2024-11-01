@@ -22,247 +22,207 @@ gc()
 ################################################################################################################+
 # MAIN PART ####
 
+# 0. Load Data =================================================================
+
+# Load Data
 df_base <- LOAD(dfinput = "main_banks_data")
 setDT(df_base)
+
+# Restrict main to the years 2006 until 2010
 main <- df_base[inrange(year, 2006, 2010)]
 
-# main <- main[, id := 1:nrow(main)]
-
 main <-main[, state := as.factor(state)]
-# main <-main[, year := as.factor(year)]
 
+# Variables and Regression Parts
 outcome_var <- c("lead_ln_loan_amount")
+did_median <- c("d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator")
+did_mean <- c("d_mean_all_pre + d_ffr_indicator + d_mean_all_pre:d_ffr_indicator")
+did_marketdef <- c("d_marketdef_all + d_ffr_indicator + d_marketdef_all:d_ffr_indicator")
 
 # 1. Dummy: Median_pre =========================================================
  
-## 1.1 Same as with state FE model but no clusters on the state level -----
+## 1.1 State FE model but no clusters on the state level -----------------------
 lapply(outcome_var, function (x) {
-  # x <- outcome_var[1]
-  did1 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator | 0 | 0 | 0")), data = main)
-  did2 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator | state | 0 | 0")), data = main)
-  did3 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + cnty_pop | state | 0 | 0")), data = main)
-  did4 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + mean_earning | state | 0 | 0")), data = main)
-  did5 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + ur | state | 0 | 0")), data = main)
-  did6 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + mean_emp | state | 0 | 0")), data = main)
-  did7 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + d_msa | state | 0 | 0")), data = main)
-  did8 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + cnty_pop + mean_earning + ur + mean_emp + d_msa | state | 0 | 0")), data = main)
-  did9 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator +  mean_earning + ur + d_msa | state | 0 | 0")), data = main)
   
+  did1 <- felm(as.formula(paste0(x,  "~" , did_median, " | 0 | 0 | 0")), data = main)
+  did2 <- felm(as.formula(paste0(x,  "~" , did_median, " | state | 0 | 0")), data = main)
+  did3 <- felm(as.formula(paste0(x,  "~" , did_median, " + cnty_pop | state | 0 | 0")), data = main)
+  did4 <- felm(as.formula(paste0(x,  "~" , did_median, " + mean_earning | state | 0 | 0")), data = main)
+  did5 <- felm(as.formula(paste0(x,  "~" , did_median, " + ur | state | 0 | 0")), data = main)
+  did6 <- felm(as.formula(paste0(x,  "~" , did_median, " + mean_emp | state | 0 | 0")), data = main)
+  did7 <- felm(as.formula(paste0(x,  "~" , did_median, " + d_msa | state | 0 | 0")), data = main)
+  did8 <- felm(as.formula(paste0(x,  "~" , did_median, " + cnty_pop + mean_earning + ur + mean_emp + d_msa | state | 0 | 0")), data = main)
+  did9 <- felm(as.formula(paste0(x,  "~" , did_median, " +  mean_earning + ur + d_msa | state | 0 | 0")), data = main) 
+
   stargazer(did1, did2, did3, did4, did5, did6, did7, did8, did9,
             type = "text",
             title = paste0("Results: ", gsub("_", " ", x)),
             column.labels = c("Base", "FE" , "Cntrl 1",  "Cntrl 2",  "Cntrl 3", "Cntrl 4", "Cntrl 5", "Cntrl 6", "Pref."),
             covariate.labels = c("Dummy: HHI MC", "Dummy: Before GR", "County Pop", "Earnings", "UR", "Employment", "Dummy: MSA", "DiD Estimator"),
-            dep.var.labels = c(rep(gsub("_", " ", x),9)),
-            out = paste0(LATEX, x, "_median_no_cluster.html")
-            # no.space = TRUE,  # Removes extra spaces for better formatting
-            # digits = 2       # Rounds coefficients to 2 decimal places
+            dep.var.labels = c(rep(gsub("_", " ", x),9))
   )
-  
-  # tinytex::latexmk(paste0(LATEX, x, ".tex"))
   
 })
 
 ## 1.2 State FE & Clusters on State-level --------------------------------------
 lapply(outcome_var, function (x) {
   # x <- outcome_var[1]
-  did1 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator | 0 | 0 | state")), data = main)
-  did2 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator | state | 0 | state")), data = main)
-  did3 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + cnty_pop | state | 0 | state")), data = main)
-  did4 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + mean_earning | state | 0 | state")), data = main)
-  did5 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + ur | state | 0 | state")), data = main)
-  did6 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + mean_emp | state | 0 | state")), data = main)
-  did7 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + d_msa | state | 0 | state")), data = main)
-  did8 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + cnty_pop + mean_earning + ur + mean_emp + d_msa | state | 0 | state")), data = main)
-  did9 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + mean_earning + ur + d_msa | state | 0 | state")), data = main)
-  
+  did1 <- felm(as.formula(paste0(x,  "~" , did_median, " | 0 | 0 | state")), data = main)
+  did2 <- felm(as.formula(paste0(x,  "~" , did_median, " | state | 0 | state")), data = main)
+  did3 <- felm(as.formula(paste0(x,  "~" , did_median, " + cnty_pop | state | 0 | state")), data = main)
+  did4 <- felm(as.formula(paste0(x,  "~" , did_median, " + mean_earning | state | 0 | state")), data = main)
+  did5 <- felm(as.formula(paste0(x,  "~" , did_median, " + ur | state | 0 | state")), data = main)
+  did6 <- felm(as.formula(paste0(x,  "~" , did_median, " + mean_emp | state | 0 | state")), data = main)
+  did7 <- felm(as.formula(paste0(x,  "~" , did_median, " + d_msa | state | 0 | state")), data = main)
+  did8 <- felm(as.formula(paste0(x,  "~" , did_median, " + cnty_pop + mean_earning + ur + mean_emp + d_msa | state | 0 | state")), data = main)
+  did9 <- felm(as.formula(paste0(x,  "~" , did_median, " + mean_earning + ur + d_msa | state | 0 | state")), data = main)
+
   stargazer(did1, did2, did3, did4, did5, did6, did7, did8, did9,
             type = "text",
             title = paste0("Results: ", gsub("_", " ", x)),
             column.labels = c("Base", "FE" , "Cntrl 1",  "Cntrl 2",  "Cntrl 3", "Cntrl 4", "Cntrl 5", "Cntrl 6", "Pref."),
             covariate.labels = c("Dummy: HHI MC", "Dummy: Before GR", "County Pop", "Earnings", "UR", "Employment", "Dummy: MSA", "DiD Estimator"),
-            dep.var.labels = c(rep(gsub("_", " ", x),9)),
-            out = paste0(LATEX, x, "_median_FE_cluster.html")
-            # no.space = TRUE,  # Removes extra spaces for better formatting
-            # digits = 2       # Rounds coefficients to 2 decimal places
+            dep.var.labels = c(rep(gsub("_", " ", x),9))
             )
-  
-  # tinytex::latexmk(paste0(LATEX, x, ".tex"))
 
   })
 
 ## 1.3 No State FE & including State Clustered Standard Errors  -----------------
 
 lapply(outcome_var, function (x) {
-  # x <- outcome_var[1]
-  did1 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator | 0 | 0 | state")), data = main)
-  did2 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator | 0 | 0 | state")), data = main)
-  did3 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + cnty_pop | 0 | 0 | state")), data = main)
-  did4 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + mean_earning | 0 | 0 | state")), data = main)
-  did5 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + ur | state | 0 | 0")), data = main)
-  did6 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + mean_emp | 0 | 0 | state")), data = main)
-  did7 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + d_msa | 0 | 0 | state")), data = main)
-  did8 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + cnty_pop + mean_earning + ur + mean_emp + d_msa | 0 | 0 | state")), data = main)
-  did9 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator +  mean_earning + ur + d_msa | 0 | 0 | state")), data = main)
-  
+
+  did1 <- felm(as.formula(paste0(x,  "~" , did_median, " | 0 | 0 | state")), data = main)
+  did2 <- felm(as.formula(paste0(x,  "~" , did_median, " | 0 | 0 | state")), data = main)
+  did3 <- felm(as.formula(paste0(x,  "~" , did_median, " + cnty_pop | 0 | 0 | state")), data = main)
+  did4 <- felm(as.formula(paste0(x,  "~" , did_median, " + mean_earning | 0 | 0 | state")), data = main)
+  did5 <- felm(as.formula(paste0(x,  "~" , did_median, " + ur | state | 0 | 0")), data = main)
+  did6 <- felm(as.formula(paste0(x,  "~" , did_median, " + mean_emp | 0 | 0 | state")), data = main)
+  did7 <- felm(as.formula(paste0(x,  "~" , did_median, " + d_msa | 0 | 0 | state")), data = main)
+  did8 <- felm(as.formula(paste0(x,  "~" , did_median, " + cnty_pop + mean_earning + ur + mean_emp + d_msa | 0 | 0 | state")), data = main)
+  did9 <- felm(as.formula(paste0(x,  "~" , did_median, " +  mean_earning + ur + d_msa | 0 | 0 | state")), data = main)
+
   stargazer(did1, did2, did3, did4, did5, did6, did7, did8, did9,
             type = "text",
             title = paste0("Results: ", gsub("_", " ", x)),
             column.labels = c("Base", "FE" , "Cntrl 1",  "Cntrl 2",  "Cntrl 3", "Cntrl 4", "Cntrl 5", "Cntrl 6", "Pref."),
             covariate.labels = c("Dummy: HHI MC", "Dummy: Before GR", "County Pop", "Earnings", "UR", "Employment", "Dummy: MSA", "DiD Estimator"),
-            dep.var.labels = c(rep(gsub("_", " ", x),9)),
-            out = paste0(LATEX, x, "_median_no_fe.html")
-            # no.space = TRUE,  # Removes extra spaces for better formatting
-            # digits = 2       # Rounds coefficients to 2 decimal places
+            dep.var.labels = c(rep(gsub("_", " ", x),9))
   )
-  
-  # tinytex::latexmk(paste0(LATEX, x, ".tex"))
-  
+
 })
 
 ## 1.4 State FE & Clustered SE & Weightes by county population ------------------
 lapply(outcome_var, function (x) {
-  # x <- outcome_var[1]
-  did1 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator | 0 | 0 | state")), data = main, weights = main$cnty_pop)
-  did2 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator | state | 0 | state")), data = main, weights = main$cnty_pop)
-  did3 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + cnty_pop | state | 0 | state")), data = main, weights = main$cnty_pop)
-  did4 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + mean_earning | state | 0 | state")), data = main, weights = main$cnty_pop)
-  did5 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + ur | state | 0 | state")), data = main, weights = main$cnty_pop)
-  did6 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + mean_emp | state | 0 | state")), data = main, weights = main$cnty_pop)
-  did7 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + d_msa | state | 0 | state")), data = main, weights = main$cnty_pop)
-  did8 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + cnty_pop + mean_earning + ur + mean_emp + d_msa | state | 0 | state")), data = main, weights = main$cnty_pop)
-  did9 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + mean_earning + ur + d_msa | state | 0 | state")), data = main, weights = main$cnty_pop)
+
+  did1 <- felm(as.formula(paste0(x,  "~" , did_median, " | 0 | 0 | state")), data = main, weights = main$cnty_pop)
+  did2 <- felm(as.formula(paste0(x,  "~" , did_median, " | state | 0 | state")), data = main, weights = main$cnty_pop)
+  did3 <- felm(as.formula(paste0(x,  "~" , did_median, " + cnty_pop | state | 0 | state")), data = main, weights = main$cnty_pop)
+  did4 <- felm(as.formula(paste0(x,  "~" , did_median, " + mean_earning | state | 0 | state")), data = main, weights = main$cnty_pop)
+  did5 <- felm(as.formula(paste0(x,  "~" , did_median, " + ur | state | 0 | state")), data = main, weights = main$cnty_pop)
+  did6 <- felm(as.formula(paste0(x,  "~" , did_median, " + mean_emp | state | 0 | state")), data = main, weights = main$cnty_pop)
+  did7 <- felm(as.formula(paste0(x,  "~" , did_median, " + d_msa | state | 0 | state")), data = main, weights = main$cnty_pop)
+  did8 <- felm(as.formula(paste0(x,  "~" , did_median, " + cnty_pop + mean_earning + ur + mean_emp + d_msa | state | 0 | state")), data = main, weights = main$cnty_pop)
+  did9 <- felm(as.formula(paste0(x,  "~" , did_median, " + mean_earning + ur + d_msa | state | 0 | state")), data = main, weights = main$cnty_pop)
   
   stargazer(did1, did2, did3, did4, did5, did6, did7, did8, did9,
             type = "text",
             title = paste0("Results: ", gsub("_", " ", x)),
             column.labels = c("Base", "FE" , "Cntrl 1",  "Cntrl 2",  "Cntrl 3", "Cntrl 4", "Cntrl 5", "Cntrl 6", "Pref."),
             covariate.labels = c("Dummy: HHI MC", "Dummy: Before GR", "County Pop", "Earnings", "UR", "Employment", "Dummy: MSA", "DiD Estimator"),
-            
-            dep.var.labels = c(rep(gsub("_", " ", x),9)),
-            out = paste0(LATEX, x, "_median_weights_pop.html")
-            # no.space = TRUE,  # Removes extra spaces for better formatting
-            # digits = 2       # Rounds coefficients to 2 decimal places
+            dep.var.labels = c(rep(gsub("_", " ", x),9))
   )
-  
-  # tinytex::latexmk(paste0(LATEX, x, ".tex"))
-  
 })
 
 ## 1.5 State FE & Clustered SE & Weighted by county population density ----------
 lapply(outcome_var, function (x) {
-  # x <- outcome_var[1]
-  did1 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator | 0 | 0 | state")), data = main, weights = main$pop_density)
-  did2 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator | state | 0 | state")), data = main, weights = main$pop_density)
-  did3 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + cnty_pop | state | 0 | state")), data = main, weights = main$pop_density)
-  did4 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + mean_earning | state | 0 | state")), data = main, weights = main$pop_density)
-  did5 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + ur | state | 0 | state")), data = main, weights = main$pop_density)
-  did6 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + mean_emp | state | 0 | state")), data = main, weights = main$pop_density)
-  did7 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + d_msa | state | 0 | state")), data = main, weights = main$pop_density)
-  did8 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + cnty_pop + mean_earning + ur + mean_emp + d_msa | state | 0 | state")), data = main, weights = main$pop_density)
-  did9 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + mean_earning + ur + d_msa | state | 0 | state")), data = main, weights = main$pop_density)
+
+  did1 <- felm(as.formula(paste0(x,  "~" , did_median, " | 0 | 0 | state")), data = main, weights = main$pop_density)
+  did2 <- felm(as.formula(paste0(x,  "~" , did_median, " | state | 0 | state")), data = main, weights = main$pop_density)
+  did3 <- felm(as.formula(paste0(x,  "~" , did_median, " + cnty_pop | state | 0 | state")), data = main, weights = main$pop_density)
+  did4 <- felm(as.formula(paste0(x,  "~" , did_median, " + mean_earning | state | 0 | state")), data = main, weights = main$pop_density)
+  did5 <- felm(as.formula(paste0(x,  "~" , did_median, " + ur | state | 0 | state")), data = main, weights = main$pop_density)
+  did6 <- felm(as.formula(paste0(x,  "~" , did_median, " + mean_emp | state | 0 | state")), data = main, weights = main$pop_density)
+  did7 <- felm(as.formula(paste0(x,  "~" , did_median, " + d_msa | state | 0 | state")), data = main, weights = main$pop_density)
+  did8 <- felm(as.formula(paste0(x,  "~" , did_median, " + cnty_pop + mean_earning + ur + mean_emp + d_msa | state | 0 | state")), data = main, weights = main$pop_density)
+  did9 <- felm(as.formula(paste0(x,  "~" , did_median, " + mean_earning + ur + d_msa | state | 0 | state")), data = main, weights = main$pop_density)
   
   stargazer(did1, did2, did3, did4, did5, did6, did7, did8, did9,
             type = "text",
             title = paste0("Results: ", gsub("_", " ", x)),
             column.labels = c("Base", "FE" , "Cntrl 1",  "Cntrl 2",  "Cntrl 3", "Cntrl 4", "Cntrl 5", "Cntrl 6", "Pref."),
             covariate.labels = c("Dummy: HHI MC", "Dummy: Before GR", "County Pop", "Earnings", "UR", "Employment", "Dummy: MSA", "DiD Estimator"),
-            
-            dep.var.labels = c(rep(gsub("_", " ", x),9)),
-            out = paste0(LATEX, x, "_median_weights_popdensity.html")
-            # no.space = TRUE,  # Removes extra spaces for better formatting
-            # digits = 2       # Rounds coefficients to 2 decimal places
+            dep.var.labels = c(rep(gsub("_", " ", x),9))
   )
-  
-  # tinytex::latexmk(paste0(LATEX, x, ".tex"))
-  
 })
 
 ## 1.6 State FE & CLustered SE & Weighted by Inverse County Population ---------
+
 lapply(outcome_var, function (x) {
-  # x <- outcome_var[1]
-  did1 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator | 0 | 0 | state")), data = main, weights = 1/main$cnty_pop)
-  did2 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator | state | 0 | state")), data = main, weights = 1/main$cnty_pop)
-  did3 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + cnty_pop | state | 0 | state")), data = main, weights = 1/main$cnty_pop)
-  did4 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + mean_earning | state | 0 | state")), data = main, weights = 1/main$cnty_pop)
-  did5 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + ur | state | 0 | state")), data = main, weights = 1/main$cnty_pop)
-  did6 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + mean_emp | state | 0 | state")), data = main, weights = 1/main$cnty_pop)
-  did7 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + d_msa | state | 0 | state")), data = main, weights = 1/main$cnty_pop)
-  did8 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + cnty_pop + mean_earning + ur + mean_emp + d_msa | state | 0 | state")), data = main, weights = 1/main$cnty_pop)
-  did9 <- felm(as.formula(paste0(x,  "~" , "d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + mean_earning + ur + d_msa | state | 0 | state")), data = main, weights = 1/main$cnty_pop)
+
+  did1 <- felm(as.formula(paste0(x,  "~" , did_median, " | 0 | 0 | state")), data = main, weights = 1/main$cnty_pop)
+  did2 <- felm(as.formula(paste0(x,  "~" , did_median, " | state | 0 | state")), data = main, weights = 1/main$cnty_pop)
+  did3 <- felm(as.formula(paste0(x,  "~" , did_median, " + cnty_pop | state | 0 | state")), data = main, weights = 1/main$cnty_pop)
+  did4 <- felm(as.formula(paste0(x,  "~" , did_median, " + mean_earning | state | 0 | state")), data = main, weights = 1/main$cnty_pop)
+  did5 <- felm(as.formula(paste0(x,  "~" , did_median, " + ur | state | 0 | state")), data = main, weights = 1/main$cnty_pop)
+  did6 <- felm(as.formula(paste0(x,  "~" , did_median, " + mean_emp | state | 0 | state")), data = main, weights = 1/main$cnty_pop)
+  did7 <- felm(as.formula(paste0(x,  "~" , did_median, " + d_msa | state | 0 | state")), data = main, weights = 1/main$cnty_pop)
+  did8 <- felm(as.formula(paste0(x,  "~" , did_median, " + cnty_pop + mean_earning + ur + mean_emp + d_msa | state | 0 | state")), data = main, weights = 1/main$cnty_pop)
+  did9 <- felm(as.formula(paste0(x,  "~" , did_median, " + mean_earning + ur + d_msa | state | 0 | state")), data = main, weights = 1/main$cnty_pop)
   
   stargazer(did1, did2, did3, did4, did5, did6, did7, did8, did9,
             type = "text",
             title = paste0("Results: ", gsub("_", " ", x)),
             column.labels = c("Base", "FE" , "Cntrl 1",  "Cntrl 2",  "Cntrl 3", "Cntrl 4", "Cntrl 5", "Cntrl 6", "Pref."),
             covariate.labels = c("Dummy: HHI MC", "Dummy: Before GR", "County Pop", "Earnings", "UR", "Employment", "Dummy: MSA", "DiD Estimator"),
-            
-            dep.var.labels = c(rep(gsub("_", " ", x),9)),
-            out = paste0(LATEX, x, "_median_weights_popinv.html")
-            # no.space = TRUE,  # Removes extra spaces for better formatting
-            # digits = 2       # Rounds coefficients to 2 decimal places
+            dep.var.labels = c(rep(gsub("_", " ", x),9))
   )
-  
-  # tinytex::latexmk(paste0(LATEX, x, ".tex"))
-  
 })
 
 # 2. Dummy: Mean_pre | State FE and Clustered SE ===============================
 
 lapply(outcome_var, function (x) {
-  # x <- outcome_var[1]
-  did1 <- felm(as.formula(paste0(x,  "~" , "d_mean_all_pre + d_ffr_indicator + d_mean_all_pre:d_ffr_indicator | 0 | 0 | state")), data = main)
-  did2 <- felm(as.formula(paste0(x,  "~" , "d_mean_all_pre + d_ffr_indicator + d_mean_all_pre:d_ffr_indicator | state | 0 | state")), data = main)
-  did3 <- felm(as.formula(paste0(x,  "~" , "d_mean_all_pre + d_ffr_indicator + d_mean_all_pre:d_ffr_indicator + cnty_pop | state | 0 | state")), data = main)
-  did4 <- felm(as.formula(paste0(x,  "~" , "d_mean_all_pre + d_ffr_indicator + d_mean_all_pre:d_ffr_indicator + mean_earning | state | 0 | state")), data = main)
-  did5 <- felm(as.formula(paste0(x,  "~" , "d_mean_all_pre + d_ffr_indicator + d_mean_all_pre:d_ffr_indicator + ur | state | 0 | state")), data = main)
-  did6 <- felm(as.formula(paste0(x,  "~" , "d_mean_all_pre + d_ffr_indicator + d_mean_all_pre:d_ffr_indicator + mean_emp | state | 0 | state")), data = main)
-  did7 <- felm(as.formula(paste0(x,  "~" , "d_mean_all_pre + d_ffr_indicator + d_mean_all_pre:d_ffr_indicator + d_msa | state | 0 | state")), data = main)
-  did8 <- felm(as.formula(paste0(x,  "~" , "d_mean_all_pre + d_ffr_indicator + d_mean_all_pre:d_ffr_indicator + cnty_pop + mean_earning + ur + mean_emp + d_msa | state | 0 | state")), data = main)
-  did9 <- felm(as.formula(paste0(x,  "~" , "d_mean_all_pre + d_ffr_indicator + d_mean_all_pre:d_ffr_indicator +  mean_earning + ur + d_msa | state | 0 | state")), data = main)
-  
+
+  did1 <- felm(as.formula(paste0(x,  "~" , did_mean, " | 0 | 0 | state")), data = main)
+  did2 <- felm(as.formula(paste0(x,  "~" , did_mean, " | state | 0 | state")), data = main)
+  did3 <- felm(as.formula(paste0(x,  "~" , did_mean, " + cnty_pop | state | 0 | state")), data = main)
+  did4 <- felm(as.formula(paste0(x,  "~" , did_mean, " + mean_earning | state | 0 | state")), data = main)
+  did5 <- felm(as.formula(paste0(x,  "~" , did_mean, " + ur | state | 0 | state")), data = main)
+  did6 <- felm(as.formula(paste0(x,  "~" , did_mean, " + mean_emp | state | 0 | state")), data = main)
+  did7 <- felm(as.formula(paste0(x,  "~" , did_mean, " + d_msa | state | 0 | state")), data = main)
+  did8 <- felm(as.formula(paste0(x,  "~" , did_mean, " + cnty_pop + mean_earning + ur + mean_emp + d_msa | state | 0 | state")), data = main)
+  did9 <- felm(as.formula(paste0(x,  "~" , did_mean, " +  mean_earning + ur + d_msa | state | 0 | state")), data = main)
+
   stargazer(did1, did2, did3, did4, did5, did6, did7, did8, did9,
             type = "text",
             title = paste0("Results: ", gsub("_", " ", x)),
             column.labels = c("Base", "FE" , "Cntrl 1",  "Cntrl 2",  "Cntrl 3", "Cntrl 4", "Cntrl 5", "Cntrl 6", "Pref."),
             covariate.labels = c("Dummy: HHI MC", "Dummy: Before GR", "County Pop", "Earnings", "UR", "Employment", "Dummy: MSA", "DiD Estimator"),
-            dep.var.labels = c(rep(gsub("_", " ", x),9)),
-            out = paste0(LATEX, x, "_mean.html")
-            # no.space = TRUE,  # Removes extra spaces for better formatting
-            # digits = 2       # Rounds coefficients to 2 decimal places
+            dep.var.labels = c(rep(gsub("_", " ", x),9))
   )
-  
-  # tinytex::latexmk(paste0(LATEX, x, ".tex"))
-  
 })
 
 
 # 3. Dummy: Market_def | State FE and Clustered SE =============================
 
 lapply(outcome_var, function (x) {
-  # x <- outcome_var[1]
-  did1 <- felm(as.formula(paste0(x,  "~" , "d_marketdef_all + d_ffr_indicator + d_marketdef_all:d_ffr_indicator | 0 | 0 | state")), data = main)
-  did2 <- felm(as.formula(paste0(x,  "~" , "d_marketdef_all + d_ffr_indicator + d_marketdef_all:d_ffr_indicator | state | 0 | state")), data = main)
-  did3 <- felm(as.formula(paste0(x,  "~" , "d_marketdef_all + d_ffr_indicator + d_marketdef_all:d_ffr_indicator + cnty_pop | state | 0 | state")), data = main)
-  did4 <- felm(as.formula(paste0(x,  "~" , "d_marketdef_all + d_ffr_indicator + d_marketdef_all:d_ffr_indicator + mean_earning | state | 0 | state")), data = main)
-  did5 <- felm(as.formula(paste0(x,  "~" , "d_marketdef_all + d_ffr_indicator + d_marketdef_all:d_ffr_indicator + ur | state | 0 | state")), data = main)
-  did6 <- felm(as.formula(paste0(x,  "~" , "d_marketdef_all + d_ffr_indicator + d_marketdef_all:d_ffr_indicator + mean_emp | state | 0 | state")), data = main)
-  did7 <- felm(as.formula(paste0(x,  "~" , "d_marketdef_all + d_ffr_indicator + d_marketdef_all:d_ffr_indicator + d_msa | state | 0 | state")), data = main)
-  did8 <- felm(as.formula(paste0(x,  "~" , "d_marketdef_all + d_ffr_indicator + d_marketdef_all:d_ffr_indicator + cnty_pop + mean_earning + ur + mean_emp + d_msa | state | 0 | state")), data = main)
-  did9 <- felm(as.formula(paste0(x,  "~" , "d_marketdef_all + d_ffr_indicator + d_marketdef_all:d_ffr_indicator +  mean_earning + ur + d_msa | state | 0 | state")), data = main)
+
+  did1 <- felm(as.formula(paste0(x,  "~" , did_marketdef, " | 0 | 0 | state")), data = main)
+  did2 <- felm(as.formula(paste0(x,  "~" , did_marketdef, " | state | 0 | state")), data = main)
+  did3 <- felm(as.formula(paste0(x,  "~" , did_marketdef, " + cnty_pop | state | 0 | state")), data = main)
+  did4 <- felm(as.formula(paste0(x,  "~" , did_marketdef, " + mean_earning | state | 0 | state")), data = main)
+  did5 <- felm(as.formula(paste0(x,  "~" , did_marketdef, " + ur | state | 0 | state")), data = main)
+  did6 <- felm(as.formula(paste0(x,  "~" , did_marketdef, " + mean_emp | state | 0 | state")), data = main)
+  did7 <- felm(as.formula(paste0(x,  "~" , did_marketdef, " + d_msa | state | 0 | state")), data = main)
+  did8 <- felm(as.formula(paste0(x,  "~" , did_marketdef, " + cnty_pop + mean_earning + ur + mean_emp + d_msa | state | 0 | state")), data = main)
+  did9 <- felm(as.formula(paste0(x,  "~" , did_marketdef, " +  mean_earning + ur + d_msa | state | 0 | state")), data = main)
   
   stargazer(did1, did2, did3, did4, did5, did6, did7, did8, did9,
             type = "text",
             title = paste0("Results: ", gsub("_", " ", x)),
             column.labels = c("Base", "FE" , "Cntrl 1",  "Cntrl 2",  "Cntrl 3", "Cntrl 4", "Cntrl 5", "Cntrl 6", "Pref."),
             covariate.labels = c("Dummy: HHI MC", "Dummy: Before GR", "County Pop", "Earnings", "UR", "Employment", "Dummy: MSA", "DiD Estimator"),
-            dep.var.labels = c(rep(gsub("_", " ", x),9)),
-            out = paste0(LATEX, x, "_market_df.html")
-            # no.space = TRUE,  # Removes extra spaces for better formatting
-            # digits = 2       # Rounds coefficients to 2 decimal places
+            dep.var.labels = c(rep(gsub("_", " ", x),9))
   )
-  # tinytex::latexmk(paste0(LATEX, x, ".tex"))
-  
 })
 
 # 4. Demeaned variables - with State FE & Clustered Standard Errors ============
@@ -773,8 +733,9 @@ stargazer(did1, did2, did3, did4, did5, did6,
             c("Clustered SE on State-Level:", "True", "True", "True", "True", "True", "True")# Custom row for dependent variable
           ),               # Exclude model names
           omit.stat = c("LL", "ser", "f", "rsq"),
-          no.space = FALSE,
-          out = paste0(LATEX, "regression_main_results.tex") 
+          no.space = FALSE
+          # ,
+          # out = paste0(LATEX, "regression_main_results.tex") 
           )
 
 # 13. Placebo in Post-Treatment Period =========================================
