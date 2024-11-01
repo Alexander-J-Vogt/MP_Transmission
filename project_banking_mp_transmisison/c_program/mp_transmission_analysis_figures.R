@@ -22,19 +22,22 @@ gc()
 ################################################################################################################+
 # MAIN PART ####
 
-# 1. Plot FFR over time ========================================================
+# 1. Plot FFR Over Time ========================================================
 
+# Load data on federal fund rate
 ffr_monthly <- LOAD(dfinput = "ffr")
 ffr_annual <- LOAD(dfinput = "ffr_annual")
 setDT(ffr_annual)
 setDT(ffr_monthly)
 
+# Select relevant variables
 ffr_annual <- ffr_annual[, c("year", "ffr_mean")]
 
+# Merge annual and montly data
 ffr_main <- merge(ffr_monthly, ffr_annual, by = c("year"))
-ffr_main <- ffr_main[year >= 1994]
-# Display average 
+ffr_main <- ffr_main[inrange(year, 2002, 2016)]
 
+# Display evoluation of monthly and annual federal funds rate
 graph_ffr <- ggplot() +
   # Plotting the mean federal funds rate with a red line
   geom_line(data = ffr_main, aes(x = date, y = ffr_mean), color = "red", size = 1.1, linetype = "dashed") +
@@ -43,7 +46,7 @@ graph_ffr <- ggplot() +
   geom_line(data = ffr_main, aes(x = date, y = ffr), color = "blue", size = 1.1) +
   
   # Adding a vertical line for December 2008
-  geom_vline(xintercept = as.Date("2008-12-01"), linetype = "dotdash", color = "black", size = 1) +
+  geom_vline(xintercept = as.Date("2007-12-01"), linetype = "dotdash", color = "black", size = 1) +
   
   # Applying a minimal theme for a clean look
   theme_minimal() +
@@ -62,7 +65,7 @@ graph_ffr <- ggplot() +
     values = c("Actual Rate" = "blue", "Mean Rate" = "red")
   ) +
   # Formatting the date axis for better readability
-  scale_x_date(date_labels = "%b %Y", date_breaks = "6 months") +
+  scale_x_date(date_labels = "%b %Y", date_breaks = "12 months") +
   
   # Customizing the theme for better aesthetics
   theme(
@@ -73,6 +76,7 @@ graph_ffr <- ggplot() +
     legend.position = "bottom"
   )
 
+# Save as pdf
 ggsave(filename = paste0(FIGURE, "graph_ffr.png"), plot = graph_ffr, device = "png", width = 10, height = 6)
 
 
@@ -142,5 +146,52 @@ ggplot() +
     legend.position = "right"
   )
 
+# 4. Plot Mortgage Loan Amount =================================================
+
+main <- LOAD(dfinput = "main_banks_data")
+setDT(main)
+mortgage <- main[, c("fips","year", "d_median_all_pre", "total_amount_loan", "ln_loan_amount")]
+mortgage <- mortgage[, .(tot_mean = mean(total_amount_loan),
+                         ln_mean = mean(ln_loan_amount)),
+                      by = .(year, d_median_all_pre)]
+mortgage <- mortgage[, tot_mean_000s := tot_mean / 1000]
+
+tot_mean_2002_0 <- mortgage[year == 2007 & d_median_all_pre == 0, tot_mean]
+tot_mean_2002_1 <- mortgage[year == 2007 & d_median_all_pre == 1, tot_mean]
+
+mortgage <- mortgage[, mean_index:= ifelse(d_median_all_pre == 0, tot_mean / tot_mean_2002_0, tot_mean / tot_mean_2002_1)]
+# 
+# mortgage_wide <- dcast(
+#   mortgage, 
+#   year ~ d_median_all_pre, 
+#   value.var = c("total_mean", "ln_mean")
+# )
+# 
+# # wide_data_normalized <- as.data.table(mortgage_wide)  # Ensure it's a data.table
+# mortgage_standardized <- mortgage_wide[, (names(mortgage_wide)[-1]) := lapply(.SD, function(col) col / col[1]), .SDcols = -1]
 
 
+ggplot(data = mortgage ) +
+  geom_line(aes(year, mean_index, color = factor(d_median_all_pre)), size = 0.7) +
+  geom_point(aes(year, mean_index, color = factor(d_median_all_pre))) +
+  labs(
+    color = "Group",                        # Customize legend title
+    x = "Year",                             # Customize x-axis label
+    y = "Mean Index"                        # Customize y-axis label
+  ) +
+  scale_color_manual(
+    values = c("0" = "blue", "1" = "red"), # Define specific colors for each group
+    labels = c("Control Group", "Treatment Group")   # Customize legend labels
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "right",              # Customize legend position (e.g., right, top, bottom, left)
+    legend.title = element_text(size = 12, face = "bold"), # Customize legend title font
+    legend.text = element_text(size = 10)   # Customize legend text font
+  )
+
+
+ggplot(mortgage, aes(x = year, y = total_mean_000s, color = factor(d_median_all_pre))) +
+  geom_line(size = 1) +                   # Line plot
+  geom_point(size = 2)
+  
