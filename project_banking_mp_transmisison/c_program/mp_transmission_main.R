@@ -22,10 +22,11 @@ gc()
 ################################################################################################################+
 # MAIN PART ####
 
-# Determine the period
+# 0. Determine Periods of Dataset ==============================================
+
 start <- 2002
 end <- 2016
-diff_year <- end - start + 1
+# diff_year <- end - start + 1
 
 
 # 1. Dataset with Mortgages of Commercial Banks ================================
@@ -40,7 +41,8 @@ banks_data <- banks_data[inrange(year, start, end)]
 # Only keep counties that are observed over the whole period
 complete_banks_data <- COMPLETEOBS(data = banks_data, rowx = "fips", colx = "year")
 
-# Implement First Differencing for all relevant variables
+# 2. Implement First Differencing for all relevant variables ===================
+
 # Define the key variables to demean
 key_vars <- c("ln_loan_amount", "ln_wtd_loan_amount", "lead_ln_loan_amount", "lead_ln_wtd_loan_amount","mean_hhi", "cnty_pop", "mean_earning", "mean_emp", "ur")
 
@@ -50,20 +52,19 @@ for (var in key_vars) {
   complete_banks_data[, paste0("demeaned_", var) := get(var) - mean(get(var), na.rm = TRUE), by = year]
 }
 
-# Create lagged variables
-lagged_var <- c("cnty_pop", "mean_earning", "mean_emp", "ur")
-
-for (i in lagged_var) {
-  complete_banks_data[, paste0("lag_", i) := shift(get(i), type = "lag"), by = fips]
-}
-
-# Calculate the change in earnings
-complete_banks_data[, delta_earnings := mean_earning - shift(mean_earning, type = "lag")]
-
-# Creating log mean_earnings in order to get normally distributed variables 
-complete_banks_data[, log_earnings := log(mean_earning)]
-complete_banks_data[, lag_log_earnings := shift(log_earnings, type = "lag"), by = fips]
-
+# # Create lagged variables
+# lagged_var <- c("cnty_pop", "mean_earning", "mean_emp", "ur")
+# 
+# for (i in lagged_var) {
+#   complete_banks_data[, paste0("lag_", i) := shift(get(i), type = "lag"), by = fips]
+# }
+# 
+# # Calculate the change in earnings
+# complete_banks_data[, delta_earnings := mean_earning - shift(mean_earning, type = "lag")]
+# 
+# # Creating log mean_earnings in order to get normally distributed variables
+# complete_banks_data[, log_earnings := log(mean_earning)]
+# complete_banks_data[, lag_log_earnings := shift(log_earnings, type = "lag"), by = fips]
 
 
 # 2. Save dataset ==============================================================
