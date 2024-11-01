@@ -60,7 +60,6 @@ attrition_county <- ggplot() +
   scale_y_continuous(breaks = seq(0, max(state_counties$N), by = 25))
 
 # save plot as pdf
-filename <- paste0("mean_value_plot_", i, ".png")
 ggsave(filename = paste0(FIGURE, "attrition_county",".png") , plot = attrition_county, width = 4, height = 4)
 
 # Attrition in Numbers
@@ -95,40 +94,12 @@ table(check_dist$d_marketdef_all)
 # Treated counties: 792  and Control Counties: 1978 
 table(check_dist$d_q70_all)
 
-# 3. Check the Mean of variables and see how they evolve for treatment and control group ====
+# 3. Check the Descriptive Statistics ==========================================
 
-# Median
-check_pta <- main_banks_data[, .(mean_loan = mean(total_amount_loan)), by = .(d_median_all, year)]
-
-
-ggplot(check_pta, aes(x = year, y = mean_loan, color = factor(d_median_all), group = d_median_all)) +
-  geom_line(size = 1) +  # Line plot
-  geom_point() +         # Add points to the line
-  labs(title = "Mean Loan by Year and d_median_all",
-       x = "Year", y = "Mean Loan",
-       color = "d_median_all") +
-  theme_minimal()
-
-# Weight loan by population size
-check_wtd <- main_banks_data[, state_pop := sum(cnty_pop), by = state]
-check_wtd <- check_wtd[, wt_pop_cnty := cnty_pop / state_pop ]
-check_wtd <- check_wtd[, wdt_tot_loan := total_amount_loan * wt_pop_cnty]
-
-check_wtd <- main_banks_data[, .(mean_loan = mean(wdt_tot_loan)), by = .(d_median_all, year)]
-
-ggplot(check_wtd, aes(x = year, y = mean_loan, color = factor(d_median_all), group = d_median_all)) +
-  geom_line(size = 1) +  # Line plot
-  geom_point() +         # Add points to the line
-  labs(title = "Mean Loan by Year and d_median_all",
-       x = "Year", y = "Mean Loan",
-       color = "d_median_all") +
-  theme_minimal()
-
-#    
-
+# List most important variables
 vars <- c("hhi", "total_amount_loan", "cnty_pop", "ur", "mean_earning", "mean_emp")  # List of variables to summarize
 
-# Loop over each variable using lapply
+# Loop over each variable using lapply and calculate mean statistics
 descriptive_stats_list <- lapply(vars, function(var) {
   main_banks_data[, .(
     count = .N,
@@ -141,10 +112,10 @@ descriptive_stats_list <- lapply(vars, function(var) {
 # Naming the list elements for better clarity
 names(descriptive_stats_list) <- vars
 
-
+# Plot quickly variable over time to get first view on their development
 mean_value_plots <- lapply(names(descriptive_stats_list), function(varname) {
-  # varname <-  "ur"
-  # Subset data for d_median_all == 1 and d_median_all == 0
+  
+  # get data by treatment and control group
   data_1 <- descriptive_stats_list[[varname]][d_median_all == 1]
   data_0 <- descriptive_stats_list[[varname]][d_median_all == 0]
   
@@ -163,12 +134,14 @@ mean_value_plots <- lapply(names(descriptive_stats_list), function(varname) {
   return(plot)
 })
 
+# Print graphs with loop
 for (plot in mean_value_plots) {
   print(plot)
 }
 
 # Loop through each plot in the mean_value_plots list
 for (i in seq_along(mean_value_plots)) {
+  
   # Get the plot object
   plot <- mean_value_plots[[i]]
   
