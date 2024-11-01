@@ -82,12 +82,31 @@ merged_data <- left_join(merged_data, qwi_earnings, by = c("fips", "year"))
 merged_data <- left_join(merged_data, ur_cnty, by = c("fips", "year"))
 merged_data <- left_join(merged_data, pop_density, by = "fips")
 
+# 3. Variable Creation =========================================================
+
 # Creating share of employment in each county and year
 setDT(merged_data)
 merged_data[, emp_rate := mean_emp / cnty_pop]
 
 # Calculate population desnity of a county
 merged_data <- merged_data[, pop_density := cnty_pop / landarea_sqkm]
+
+# Creating log emp
+merged_data <- merged_data[, log_emp := log(mean_emp)]
+
+# Create lagged variables
+lagged_var <- c("cnty_pop", "mean_earning", "mean_emp", "ur")
+
+for (i in lagged_var) {
+  merged_data[, paste0("lag_", i) := shift(get(i), type = "lag"), by = fips]
+}
+
+# Calculate the change in earnings
+merged_data[, delta_earnings := mean_earning - shift(mean_earning, type = "lag")]
+
+# Creating log mean_earnings in order to get normally distributed variables
+merged_data[, log_earnings := log(mean_earning)]
+merged_data[, lag_log_earnings := shift(log_earnings, type = "lag"), by = fips]
 
 # SAVE
 SAVE(dfx = merged_data)
