@@ -225,4 +225,52 @@ ggplot(data = mortgage ) +
     legend.text = element_text(size = 10)   # Customize legend text font
   )
 
+
+
+# 5. Analyse the attrition of counties =========================================
+
+# Load main dataset
+main_banks_data <- LOAD(dfinput = "main_banks_data")
+setDT(main_banks_data)
+
+# Load dataset on all counties by fips
+load(paste0(TEMP, "/", "fips_data.rda"))
+
+# Check the number of counties of the united states
+state_counties <- fips_data[, .N, by = .(state_code)]
+
+# Number of counties per state in the main dataset with all commercial banks
+banks_state_cnty <- main_banks_data[, c("fips", "state")]
+banks_state_cnty <- unique(banks_state_cnty)
+banks_state_cnty <- banks_state_cnty[, .N , by = state]
+
+# List of state code with the corresponding state name
+state_name <- fips_data[, c("state_name", "state_code")]
+state_name <- unique(state_name)
+
+# Visualize the attrition of the counties lost by only including states that 
+# are observed over the whole period
+attrition_county <- ggplot() +
+  # First geom_bar for state_counties dataset
+  geom_bar(data = state_counties, aes(x = state_code, y = N), stat = "identity", fill = "red", alpha = 1) +
+  
+  # Second geom_bar for banks_dstate dataset
+  geom_bar(data = banks_state_cnty, aes(x = state, y = N), stat = "identity", fill = "blue", alpha = 1, position = "dodge") +
+  theme_minimal() +
+  labs(title = "Number of Counties by State", x = "State", y = "Number of Counties") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +  # Rotate x-axis labels
+  scale_x_discrete() +  # Ensure all x-axis labels are displayed
+  scale_y_continuous(breaks = seq(0, max(state_counties$N), by = 25))
+
+# save plot as pdf
+ggsave(filename = paste0(FIGURE, "attrition_county",".png") , plot = attrition_county, width = 4, height = 4)
+
+# Attrition in Numbers
+n_cnty <- sum(banks_state_cnty$N)
+n <- sum(state_counties$N)
+
+# Attrition:
+sh_attrition <- (n - n_cnty) / n
+abs_attrition <- n - n_cnty
+
 ########################### ENDE ##############################################+
