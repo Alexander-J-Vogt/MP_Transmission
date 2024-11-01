@@ -50,6 +50,8 @@ controls_data <- controls_data[, state := NULL]
 banks_data <- full_join(outcome_banks_data, treatment_data, by = c("fips", "year"))
 banks_data <- full_join(banks_data, controls_data, by = c("fips", "year"))
 
+# 3. Saving ====================================================================
+
 # Save
 SAVE(dfx = banks_data, namex = "banks_data_joined")
 
