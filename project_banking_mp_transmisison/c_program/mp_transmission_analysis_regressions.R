@@ -527,7 +527,7 @@ lapply(outcome_var, function (x) {
 })
 
 
-# 11. Calculate the ATT ========================================================
+# 11. Calculate the ATT  [INCLUDED IN PRESENTATION] ============================
 
 # Different formulas
 formula_base <- as.formula(lead_ln_loan_amount ~ d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator | state | 0 | state)
@@ -578,47 +578,17 @@ anticipation_0 <- combined_results_all$anticipation_0
 anticipation_1 <- combined_results_all$anticipation_1
 anticipation_2 <- combined_results_all$anticipation_2
 
-ggdid <- function (dfx) {
-
-  # Formatting a Graph for the Average Treatment Effect by Period
-  plot <- ggplot(data = dfx, aes(x = year, y = att)) +
-    geom_point(color = "blue") +                         
-    geom_line(color = "blue", size = 0.7) +                          
-    geom_errorbar(aes(ymin = ci_lower, ymax = ci_upper), 
-                  width = 0.2, color = "red") +
-    labs(x = "Year",
-        y = "Average Treatment Effect",
-        title = "Average Treatment Effect",
-        subtitle = paste0("Anticipation of Event: ", unique(na.omit(dfx$anticipation)) ," years")
-        ) +
-    scale_x_continuous(breaks = seq(min(dfx$year), max(dfx$year), by = 1)) +
-    scale_y_continuous(breaks = seq(-0.25, 0.25, by = .05), limits = c(-0.25, 0.25)) +
-    theme(
-      plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
-      plot.subtitle = element_text(size = 12, face = "italic", hjust = 0.5),
-      axis.text.x = element_text(angle = 45, hjust = 1),
-      axis.title = element_text(size = 12, face = "bold"),
-      legend.position = "bottom",
-      plot.title.position = "plot" 
-    ) +
-    geom_hline(yintercept = 0, linetype = "solid", color = "black") + 
-    geom_vline(xintercept = 2007.5, linetype = "dashed", color = "black") +
-    theme_minimal()
-  
-  # Return plot
-  return(plot)
-}
 
 # Creating Graphs
-gg_anticp0 <- ggdid(dfx = anticipation_0$cov_base)
-gg_anticp1 <- ggdid(dfx = anticipation_1$cov_ur)
+gg_anticp0 <- GGDID(dfx = anticipation_0$cov_base)
+gg_anticp1 <- GGDID(dfx = anticipation_1$cov_ur)
 
 # Saving as pdf
 pdf(paste0(FIGURE, "did_graph_full_specifciation.pdf"), width = 14, height = 7)
 grid.arrange(gg_anticp0, gg_anticp1, ncol = 2)
 dev.off()
 
-## 12. Final specification with a formatted stargazer table ====================
+## 12. Final specification with a formatted stargazer table  [INCLUDED IN PRESENTATION] ===================
 
 df_antcp0 <- df_base[inrange(year, 2007, 2010)]
 df_antcp1 <- df_base[inrange(year, 2006, 2010)]
@@ -654,7 +624,7 @@ stargazer(did1, did2, did3, did4, did5, did6,
           # out = paste0(LATEX, "regression_main_results.tex") 
           )
 
-# 13. Placebo in Post-Treatment Period =========================================
+# 13. Placebo in Post-Treatment Period  [INCLUDED IN PRESENTATION] =========================================
 
 # Restrict Period according to anticipation period & three periods after treatment
 df_antcp0 <- df_base[inrange(year, 2013, 2016)]
@@ -694,7 +664,7 @@ stargazer(did7, did8, did9, did10, did11, did12,
 )
 
 
-# 14. Placebo in Pre-Treatment Period ==========================================
+# 14. Placebo in Pre-Treatment Period [INCLUDED IN PRESENTATION] ==========================================
 
 # Restrict Period according to anticipation period & three periods after treatment
 df_antcp0 <- df_base[inrange(year, 2003, 2006)]
