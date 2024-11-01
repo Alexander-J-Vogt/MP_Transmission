@@ -52,31 +52,9 @@ for (var in key_vars) {
   complete_banks_data[, paste0("demeaned_", var) := get(var) - mean(get(var), na.rm = TRUE), by = year]
 }
 
-# # Create lagged variables
-# lagged_var <- c("cnty_pop", "mean_earning", "mean_emp", "ur")
-# 
-# for (i in lagged_var) {
-#   complete_banks_data[, paste0("lag_", i) := shift(get(i), type = "lag"), by = fips]
-# }
-# 
-# # Calculate the change in earnings
-# complete_banks_data[, delta_earnings := mean_earning - shift(mean_earning, type = "lag")]
-# 
-# # Creating log mean_earnings in order to get normally distributed variables
-# complete_banks_data[, log_earnings := log(mean_earning)]
-# complete_banks_data[, lag_log_earnings := shift(log_earnings, type = "lag"), by = fips]
-
-
 # 2. Save dataset ==============================================================
 
 # Save dataset
 SAVE(dfx = complete_banks_data, namex = "main_banks_data")
-
-
-#### Extra 
-
-
-
-
 
 ########################## ENDE ###############################################+
