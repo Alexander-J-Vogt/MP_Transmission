@@ -22,7 +22,7 @@ gc()
 ################################################################################################################+
 # MAIN PART ####
 
-# 1. Plot FFR Over Time ========================================================
+# 1. Plot FFR Over Time [NOT SAVED] ============================================
 
 # Load data on federal fund rate
 ffr_monthly <- LOAD(dfinput = "ffr")
@@ -80,7 +80,7 @@ graph_ffr <- ggplot() +
 ggsave(filename = paste0(FIGURE, "graph_ffr.png"), plot = graph_ffr, device = "png", width = 10, height = 6)
 
 
-# 2. GDP Time Line =============================================================
+# 2. GDP Time Line [NOT SAVED] =================================================
 
 # Load data on GDP of U.S.
 gdp_data <- LOAD(dfinput = "gdp_data")
@@ -121,7 +121,7 @@ ggplot() +
   )
 
 
-# 3. Plot Market Concentration over time ========================================
+# 3. Plot Market Concentration over time [NOT SAVED] ===========================
 
 # Load data 
 main <- LOAD(dfinput = "main_allfin_data")
@@ -168,52 +168,61 @@ ggplot() +
   )
 
 
-# 4. Plot Mortgage Loan Amount =================================================
+# 4. Plot Mortgage Loan Amount [NOT SAVED] =====================================
 
+# Load data
 main <- LOAD(dfinput = "main_banks_data")
 setDT(main)
+
+# Restrict data to relevant variables
 mortgage <- main[, c("fips","year", "d_median_all_pre", "total_amount_loan", "ln_loan_amount")]
+
+# Calculate mean loan amount by year 
 mortgage <- mortgage[, .(tot_mean = mean(total_amount_loan),
                          ln_mean = mean(ln_loan_amount)),
                       by = .(year, d_median_all_pre)]
+
+# Rescale variable to 1000s
 mortgage <- mortgage[, tot_mean_000s := tot_mean / 1000]
 
-tot_mean_2002_0 <- mortgage[year == 2007 & d_median_all_pre == 0, tot_mean]
-tot_mean_2002_1 <- mortgage[year == 2007 & d_median_all_pre == 1, tot_mean]
+# Determine the tot_mean in the year 2002 for treatment and control group
+tot_mean_2002_0 <- mortgage[year == 2002 & d_median_all_pre == 0, tot_mean]
+tot_mean_2002_1 <- mortgage[year == 2002 & d_median_all_pre == 1, tot_mean]
 
+# Index tot_mean
 mortgage <- mortgage[, mean_index:= ifelse(d_median_all_pre == 0, tot_mean / tot_mean_2002_0, tot_mean / tot_mean_2002_1)]
-# 
-# mortgage_wide <- dcast(
-#   mortgage, 
-#   year ~ d_median_all_pre, 
-#   value.var = c("total_mean", "ln_mean")
-# )
-# 
-# # wide_data_normalized <- as.data.table(mortgage_wide)  # Ensure it's a data.table
-# mortgage_standardized <- mortgage_wide[, (names(mortgage_wide)[-1]) := lapply(.SD, function(col) col / col[1]), .SDcols = -1]
 
-
+# Evaluate the indexed mortgage loan amount 
 ggplot(data = mortgage ) +
+  
+  # Draw line for indexed tot_mean by group
   geom_line(aes(year, mean_index, color = factor(d_median_all_pre)), size = 0.7) +
+  
+  
+  # Scatterplot for indexed tot_mean by group
   geom_point(aes(year, mean_index, color = factor(d_median_all_pre))) +
+  
+  # label graph
   labs(
-    color = "Group",                        # Customize legend title
-    x = "Year",                             # Customize x-axis label
-    y = "Mean Index"                        # Customize y-axis label
-  ) +
+    color = "Group",                        
+    x = "Year",                             
+    y = "Mean Index"                        
+  ) + 
+  
+  # Adjust Legend
   scale_color_manual(
     values = c("0" = "blue", "1" = "red"), # Define specific colors for each group
     labels = c("Control Group", "Treatment Group")   # Customize legend labels
   ) +
+  
+  # Minimal Design
   theme_minimal() +
+  
+  # Adjust labels size
   theme(
     legend.position = "right",              # Customize legend position (e.g., right, top, bottom, left)
     legend.title = element_text(size = 12, face = "bold"), # Customize legend title font
     legend.text = element_text(size = 10)   # Customize legend text font
   )
 
-
-ggplot(mortgage, aes(x = year, y = total_mean_000s, color = factor(d_median_all_pre))) +
-  geom_line(size = 1) +                   # Line plot
-  geom_point(size = 2)
-  
+########################### ENDE ##############################################+
