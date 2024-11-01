@@ -204,10 +204,10 @@ png(paste0(FIGURE, "correlation_plot.png"), width = 800, height = 600)
 corrplot(pooled_correlation, method = "number", type = "lower", tl.col = "black", tl.srt = 45)
 dev.off()
 
-# Density of variables =========================================================
+# 6. Density of Earning ========================================================
 
+# Density plot for earnings and log earnings
 ggplot() +
-  # geom_density(data = main_banks_data, aes(x = mean_earning), color = "blue") +
   geom_density(data = main_banks_data, aes(x = log(mean_earning)), color = "red")
 
 ggplot() + 
