@@ -182,8 +182,7 @@ descriptive_stats <- lapply(update_key_var, function(var) {
 # name element lists
 names(descriptive_stats) <- update_key_var
 
-# Correlation of variables by year and pooled ==================================
-des_stats <- des_stats[year != 2004]
+# 5. Correlation of variables by year and pooled [SAVED PLOT] ==================
 
 # Calculate correlation tables for all variables in key_var for each year and pooled correlation
 correlation_tables <- lapply(unique(des_stats$year), function(yr) {
