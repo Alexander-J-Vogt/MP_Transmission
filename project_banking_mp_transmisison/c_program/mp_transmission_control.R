@@ -96,7 +96,6 @@ merged_data <- merged_data[, log_emp := log(mean_emp)]
 
 # Create lagged variables
 lagged_var <- c("cnty_pop", "mean_earning", "mean_emp", "ur")
-
 for (i in lagged_var) {
   merged_data[, paste0("lag_", i) := shift(get(i), type = "lag"), by = fips]
 }
@@ -108,7 +107,9 @@ merged_data[, delta_earnings := mean_earning - shift(mean_earning, type = "lag")
 merged_data[, log_earnings := log(mean_earning)]
 merged_data[, lag_log_earnings := shift(log_earnings, type = "lag"), by = fips]
 
-# SAVE
+# 4. Saving ====================================================================
+
+# save dataset
 SAVE(dfx = merged_data)
 
 ########################## ENDE ###############################################+
