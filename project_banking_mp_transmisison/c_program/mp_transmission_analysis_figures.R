@@ -121,24 +121,28 @@ ggplot() +
   )
 
 
-# 3. Plot Market Conentration over time ========================================
+# 3. Plot Market Concentration over time ========================================
 
+# Load data 
 main <- LOAD(dfinput = "main_allfin_data")
-hhi_county <- LOAD(dfinput = "main_allfin_data")
 setDT(main)
-setDT(hhi_county)
-main <- main[, c("fips", "year", "hhi")]
-# main <- main[year %in% seq(2005, 2015, by = 2)]
-main <- main[, year := as.factor(year)]
-main <- main[year %in% c(2004, 2015)]
-hhi_county <- hhi_county[, c("fips", "mean_hhi", "mean_hhi_pre")]
-hhi_county <- unique(hhi_county, by = c("fips"))
 
+# Restrict dataset and format variables
+main <- main[, c("fips", "year", "hhi")]
+main <- main[year %in% c(2004, 2015)]
+main <- main[, year := as.factor(year)]
+
+# Plot density of HH in order to evaluate how market concentration is evolving
+# over time
 ggplot() +
+  
+  # PLot density of hhi
   geom_density(data = main, aes(x = hhi, group = year, color = year), alpha = 0.5, size = 1) +  # Density plot for dt
-  geom_density(data = hhi_county, aes(x = mean_hhi), alpha = 0.3, size = 1) +  # Density plot for mean_hhi from hhi_county
-  geom_density(data = hhi_county, aes(x = mean_hhi_pre), alpha = 0.3, size = 1, color = "midnightblue") +  # Density plot for mean_hhi from hhi_county
+  
+  # Vertical line at critical value of HHI = 2500
   geom_vline(xintercept = 2500, linetype = "dotdash", color = "black", size = 1) +  # Vertical line at 2500
+  
+  # Label graph
   labs(
     title = "Density Plot of HHI by Year",
     x = "Herfindahl-Hirschman Index (HHI)",
@@ -146,9 +150,15 @@ ggplot() +
     color = "Year",
     fill = "Year"
   ) +
+  
+  # Adjust x- and y-axis
   scale_x_continuous(breaks = seq(0, max(main$hhi, na.rm = TRUE), by = 1000)) +  # Set x-axis breaks of 1000
   scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +  # Better scaling for y-axis
+  
+  # Add minimal theme
   theme_minimal() +
+  
+  # Format labels
   theme(
     plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
     plot.subtitle = element_text(size = 12, face = "italic", hjust = 0.5),
@@ -156,6 +166,7 @@ ggplot() +
     axis.title = element_text(size = 12, face = "bold"),
     legend.position = "right"
   )
+
 
 # 4. Plot Mortgage Loan Amount =================================================
 
