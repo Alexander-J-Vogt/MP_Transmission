@@ -1,4 +1,4 @@
-# TARGET: 
+# TARGET: Includes the main regression results & ATE after Callaway & Sant'Anna (2021)
 # INDATA: 
 # OUTDATA/ OUTPUT:
 
@@ -21,6 +21,47 @@ gc()
 
 ################################################################################################################+
 # MAIN PART ####
+
+
+#' What regression specifications have been tested?
+#' 
+#' i. The following additional control variables have been tested in different specifications:
+#'    - employment 
+#'    - log employment
+#'    - change in employment
+#'    - earnings not logged
+#'    - lagged employment
+#'    - lagged log employment
+#'    - lagged unemployment rate
+#'    - lagged log earnings
+#'    - lagged earnings
+#'    - employment rate (employment over county population)
+#'    - county density
+#' 
+#' ii. The following alternative dummy variables for treatment and control variables
+#' have been tested:
+#' 
+#'    - d_mean: 1 when HHI of county is greater than median
+#'    - d_170: 1 when HHI of county is greater than the 70th percentile
+#'    - d_market_definition: 1 when HHI of county is greater than HHI of 2500
+#'    
+#' iii. Additionally:
+#'    - Specification with demeaned variables by year in order to control for 
+#'      unobserved time-variant characteristics
+#'
+#' Every Specification was tried:
+#' 
+#'    - with State FE + Cluster SE on State Level 
+#'    - without State FE + without Clustered SE on State-level
+#'    - without State FE + without Clustered SE on State-level
+#'    
+#' Final Specification:
+#' 
+#'  - State FE + Clustered SE on State-level
+#'  - Baseline Model: with no control variable
+#'  - Control Set 1: Unemployment Rate + log Earnings
+#'  - Control Set 2: Unemployment Rate + log Earnings + Dummy MSA
+
 
 # 0. Load Data =================================================================
 
@@ -531,13 +572,15 @@ lapply(outcome_var, function (x) {
 
 # 11. Calculate the ATT  [INCLUDED IN PRESENTATION] ============================
 
-# Different formulas
+# Different control set specifications
 formula_base <- as.formula(lead_ln_loan_amount ~ d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator | state | 0 | state)
 formula_ur <- as.formula(lead_ln_loan_amount ~ d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + ur + log_earnings| state | 0 | state)
 formula_ur_msa <- as.formula(lead_ln_loan_amount ~ d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator  + ur + log_earnings + d_msa| state | 0 | state)
 
+# list of formula names
 formula_list <- list(formula_base, formula_ur, formula_ur_msa)
 
+# nameing the list accoriding to the formula
 names(formula_list) <- c("formula_base", "formula_ur", "formula_ur_msa")
 
 # Different additional covariate settings for pre-treatment effects
@@ -580,17 +623,17 @@ anticipation_0 <- combined_results_all$anticipation_0
 anticipation_1 <- combined_results_all$anticipation_1
 anticipation_2 <- combined_results_all$anticipation_2
 
-
-# Creating Graphs
+# Creating Graphs with GGDID (Own Function)
 gg_anticp0 <- GGDID(dfx = anticipation_0$cov_base)
 gg_anticp1 <- GGDID(dfx = anticipation_1$cov_ur)
 
 if (PRODUCE_FIGS) {
-# Saving as pdf
-pdf(paste0(FIGURE, "did_graph_full_specifciation.pdf"), width = 14, height = 7)
-grid.arrange(gg_anticp0, gg_anticp1, ncol = 2)
-dev.off()
+  # Saving as pdf
+  pdf(paste0(FIGURE, "did_graph_full_specifciation.pdf"), width = 14, height = 7)
+  grid.arrange(gg_anticp0, gg_anticp1, ncol = 2)
+  dev.off()
 }
+
 ## 12. Final specification with a formatted stargazer table  [INCLUDED IN PRESENTATION] ===================
 
 df_antcp0 <- df_base[inrange(year, 2007, 2010)]
