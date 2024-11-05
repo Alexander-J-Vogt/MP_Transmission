@@ -22,6 +22,7 @@ gc()
 ################################################################################################################+
 # MAIN PART ####
 
+# 0. Documentation =============================================================
 
 #' What regression specifications have been tested?
 #' 
@@ -63,28 +64,17 @@ gc()
 #'  - Control Set 2: Unemployment Rate + log Earnings + Dummy MSA
 
 
-# 0. Load Data =================================================================
+# 1. Load Data =================================================================
 
-PRODUCE_FIGS <- FALSE
+# SET TRUE FOR PRODUCING GRAPHS
+PRODUCE_FIGS <- TRUE
 
 # Load Data
 df_base <- LOAD(dfinput = "main_banks_data")
 setDT(df_base)
 
-# Restrict main to the years 2006 until 2010
-main <- df_base[inrange(year, 2006, 2010)]
 
-main <-main[, state := as.factor(state)]
-
-# Variables and Regression Parts
-outcome_var <- c("lead_ln_loan_amount")
-did_median <- c("d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator")
-did_mean <- c("d_mean_all_pre + d_ffr_indicator + d_mean_all_pre:d_ffr_indicator")
-did_marketdef <- c("d_marketdef_all + d_ffr_indicator + d_marketdef_all:d_ffr_indicator")
-
-
-
-# 11. Calculate the ATT  [INCLUDED IN PRESENTATION] ============================
+# 02. Calculate the ATT  [INCLUDED IN PRESENTATION] ============================
 
 # Different control set specifications
 formula_base <- as.formula(lead_ln_loan_amount ~ d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator | state | 0 | state)
@@ -148,22 +138,26 @@ if (PRODUCE_FIGS) {
   dev.off()
 }
 
-## 12. Final specification with a formatted stargazer table  [INCLUDED IN PRESENTATION] ===================
+## 03. Final specification with a formatted stargazer table  [INCLUDED IN PRESENTATION] ===================
 
+# Restrict Period according to anticipation period & three periods after treatment
 df_antcp0 <- df_base[inrange(year, 2007, 2010)]
 df_antcp1 <- df_base[inrange(year, 2006, 2010)]
 
+# Basic DiD regression
 base_formel <- c("lead_ln_loan_amount ~ d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator")
 
+# Regressions without anticipation
 did1 <- felm(as.formula(paste0(base_formel, " | state | 0 | state")), data = df_antcp0, weights = 1/df_antcp0$cnty_pop)
 did2 <- felm(as.formula(paste0(base_formel, " + ur + log_earnings | state | 0 | state")), data = df_antcp0, weights = 1/df_antcp0$cnty_pop)
 did3 <- felm(as.formula(paste0(base_formel, " + ur + log_earnings + d_msa| state | 0 | state")), data = df_antcp0, weights = 1/df_antcp0$cnty_pop)
 
+# Regression with one year of anticipation
 did4 <- felm(as.formula(paste0(base_formel, " | state | 0 | state")), data = df_antcp1, weights = 1/df_antcp1$cnty_pop)
 did5 <- felm(as.formula(paste0(base_formel, " + ur + log_earnings | state | 0 | state")), data = df_antcp1, weights = 1/df_antcp1$cnty_pop)
 did6 <- felm(as.formula(paste0(base_formel, " + ur + log_earnings + d_msa| state | 0 | state")), data = df_antcp1, weights = 1/df_antcp1$cnty_pop)
 
-# Condition to print out FIGURES and TABLES
+# Condition to print out figures and tables
 output_main_results <- if (PRODUCE_FIGS) paste0(LATEX, "regression_main_results.tex") else NULL
 
 # Stargazer table
@@ -188,7 +182,8 @@ stargazer(did1, did2, did3, did4, did5, did6,
           out = output_main_results
           )
 
-# 13. Placebo in Post-Treatment Period  [INCLUDED IN PRESENTATION] =========================================
+
+# 04. Placebo in Post-Treatment Period  [INCLUDED IN PRESENTATION] =========================================
 
 # Restrict Period according to anticipation period & three periods after treatment
 df_antcp0 <- df_base[inrange(year, 2013, 2016)]
@@ -197,19 +192,19 @@ df_antcp1 <- df_base[inrange(year, 2012, 2016)]
 # Placebo Formula
 placebo_formel <- c("lead_ln_loan_amount ~ d_median_all_pre + d_placebo_2014 + d_median_all_pre:d_placebo_2014")
 
-# Regression for no anticipation
+# Regression without anticipation
 did7 <- felm(as.formula(paste0(placebo_formel, " | state | 0 | state")), data = df_antcp0, weights = 1/df_antcp0$cnty_pop)
 did8 <- felm(as.formula(paste0(placebo_formel, " + ur + log_earnings | state | 0 | state")), data = df_antcp0, weights = 1/df_antcp0$cnty_pop)
 did9 <- felm(as.formula(paste0(placebo_formel, " + ur + log_earnings + d_msa| state | 0 | state")), data = df_antcp0, weights = 1/df_antcp0$cnty_pop)
 
-# Regression for one year of anticipation
+# Regression with one year of anticipation
 did10 <- felm(as.formula(paste0(placebo_formel, " | state | 0 | state")), data = df_antcp1, weights = 1/df_antcp1$cnty_pop)
 did11 <- felm(as.formula(paste0(placebo_formel, " + ur + log_earnings | state | 0 | state")), data = df_antcp1, weights = 1/df_antcp1$cnty_pop)
 did12 <- felm(as.formula(paste0(placebo_formel, " + ur + log_earnings + d_msa| state | 0 | state")), data = df_antcp1, weights = 1/df_antcp1$cnty_pop)
 
-# Condition to print out FIGURES and TABLES
+# Condition to print out figures and tables
 output_placebo_post_results <- if (PRODUCE_FIGS) paste0(LATEX, "regression_placebo_post.tex") else NULL
-PRODUCE_FIGS <- FALSE
+
 # Stargazer table
 stargazer(did7, did8, did9, did10, did11, did12,
           type = "text",
@@ -230,10 +225,10 @@ stargazer(did7, did8, did9, did10, did11, did12,
           notes.append = TRUE,
           notes = "Column (1) and (4): Baseline | Column (2) and (5): Control Set 1 | Column (3) and (6): Control Set 2",
           out = output_placebo_post_results
-)
+          )
 
 
-# 14. Placebo in Pre-Treatment Period [INCLUDED IN PRESENTATION] ==========================================
+# 05. Placebo in Pre-Treatment Period [INCLUDED IN PRESENTATION] ==========================================
 
 # Restrict Period according to anticipation period & three periods after treatment
 df_antcp0 <- df_base[inrange(year, 2003, 2006)]
@@ -242,17 +237,17 @@ df_antcp1 <- df_base[inrange(year, 2002, 2006)]
 # Placebo Formula
 placebo_formel <- c("lead_ln_loan_amount ~ d_median_all_pre + d_placebo_2004 + d_median_all_pre:d_placebo_2004")
 
-# Regressions for no anticipation
+# Regression without anticipation
 did13 <- felm(as.formula(paste0(placebo_formel, " | state | 0 | state")), data = df_antcp0, weights = 1/df_antcp0$cnty_pop)
 did14 <- felm(as.formula(paste0(placebo_formel, " + ur + log_earnings | state | 0 | state")), data = df_antcp0, weights = 1/df_antcp0$cnty_pop)
 did15 <- felm(as.formula(paste0(placebo_formel, " + ur + log_earnings + d_msa| state | 0 | state")), data = df_antcp0, weights = 1/df_antcp0$cnty_pop)
 
-# Regressions for one year of anticipation
+# Regression with one year of anticipation
 did16 <- felm(as.formula(paste0(placebo_formel, " | state | 0 | state")), data = df_antcp1, weights = 1/df_antcp1$cnty_pop)
 did17 <- felm(as.formula(paste0(placebo_formel, " + ur + log_earnings | state | 0 | state")), data = df_antcp1, weights = 1/df_antcp1$cnty_pop)
 did18 <- felm(as.formula(paste0(placebo_formel, " + ur + log_earnings + d_msa| state | 0 | state")), data = df_antcp1, weights = 1/df_antcp1$cnty_pop)
 
-# Condition to print out FIGURES and TABLES
+# Condition to print out figures and tables
 output_placebo_pre_results <- if (PRODUCE_FIGS) paste0(LATEX, "regression_placebo_pre.tex") else NULL
 
 # Stargazer table
@@ -275,7 +270,6 @@ stargazer(did13, did14, did15, did16, did17, did18,
           notes.append = TRUE,
           notes = "Column (1) and (4): Baseline | Column (2) and (5): Control Set 1 | Column (3) and (6): Control Set 2",
           out = output_placebo_pre_results
-)
+          )
 
-
-
+############################## END ############################################+
