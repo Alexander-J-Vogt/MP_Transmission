@@ -63,10 +63,41 @@ source(paste0(DO,input,sep=""), echo=TRUE, max=1000)
 ################################################################################################################+
 # MAIN PART ####
 
+# Code to read-in hmda files takes a lot of time
+RUNLONGCODE <- FALSE
 
+if (RUNLONGCODE) {
+  
 #############################################+
 # read-in + basic editing of raw data: create base df ####
 input <- 'mp_transmission_databasics.R'
+source(paste0(DO,input,sep=""), echo=TRUE, max=1000)
+
+input <- 'mp_transmission_databasics_fips.R'
+source(paste0(DO,input,sep=""), echo=TRUE, max=1000)
+
+input <- 'mp_transmission_databasics_sod.R'
+source(paste0(DO,input,sep=""), echo=TRUE, max=1000)
+
+input <- 'mp_transmission_databasics_hmda.R'
+source(paste0(DO,input,sep=""), echo=TRUE, max=1000)
+
+input <- 'mp_transmission_databasics_ffr.R'
+source(paste0(DO,input,sep=""), echo=TRUE, max=1000)
+
+input <- 'mp_transmission_databasics_pop.R'
+source(paste0(DO,input,sep=""), echo=TRUE, max=1000)
+
+input <- 'mp_transmission_databasics_ur.R'
+source(paste0(DO,input,sep=""), echo=TRUE, max=1000)
+
+input <- 'mp_transmission_databasics_qwi.R'
+source(paste0(DO,input,sep=""), echo=TRUE, max=1000)
+
+input <- 'mp_transmission_databasics_gdp.R'
+source(paste0(DO,input,sep=""), echo=TRUE, max=1000)
+
+input <- 'mp_transmission_databasics_landarea.R'
 source(paste0(DO,input,sep=""), echo=TRUE, max=1000)
 
 #############################################+
@@ -79,6 +110,8 @@ source(paste0(DO,input,sep=""), echo=TRUE, max=1000)
 
 input <- 'mp_transmission_control.R'
 source(paste0(DO,input,sep=""), echo=TRUE, max=1000)
+
+}
 
 #############################################+
 # merge outcome, treatment and control variables
@@ -96,9 +129,10 @@ source(paste0(DO,input,sep=""), echo=TRUE, max=1000)
 input <- 'mp_transmission_analysis_vardistribution.R'
 source(paste0(DO,input,sep=""), echo=TRUE, max=1000)
 
-input <- 'mp_transmission_analysis_regression.R'
+input <- 'mp_transmission_analysis_regressions.R'
 source(paste0(DO,input,sep=""), echo=TRUE, max=1000)
 
 input <- 'mp_transmission_analysis_figures.R'
 source(paste0(DO,input,sep=""), echo=TRUE, max=1000)
 
+############################### ENDE ##########################################+
