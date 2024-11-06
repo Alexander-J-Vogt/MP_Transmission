@@ -27,7 +27,8 @@ gc()
 ## 1.1 Load the Dataset ---------------------------------------------------------
 
 # Load the Summary of Deposits for the period 1994 to 2020
-sod <- LOAD(dfinput = "banks_sod", dfextension = ".rda")
+# sod <- LOAD(dfinput = "banks_sod", dfextension = ".rda")
+sod <- LOAD(dfinput = "mp_transmission_databasics_sod", dfextension = ".rda")
 setDT(sod)
 
 # Select the relevant variables for creating HHI by county-level
@@ -139,7 +140,8 @@ SAVE(dfx = sod, name = "SOD_final")
 # 2. Federal Funds Rate ========================================================
 
 # Load raw dataset of the federal funds rate
-ffr_data <- LOAD(dfinput = "ffr")
+# ffr_data <- LOAD(dfinput = "ffr")
+ffr_data <- LOAD(dfinput = "mp_transmission_databasics_ffr")
 setDT(ffr_data)
 
 # Creating measures of the federal funds rate
@@ -170,8 +172,8 @@ treatment_data <- left_join(sod, ffr_data, by = c("year"))
 # 4. Placebo-Test Variables ====================================================
 
 # Create Placebo variables
-treatment_data[, d_placebo_2004 := ifelse(year >= 2004, 1, 0)]
-treatment_data[, d_placebo_2014 := ifelse(year >= 2014, 1, 0)]
+treatment_data <- treatment_data[, d_placebo_2004 := ifelse(year >= 2004, 1, 0)]
+treatment_data <- treatment_data[, d_placebo_2014 := ifelse(year >= 2014, 1, 0)]
 
 # 5. Saving the dataset ========================================================
 

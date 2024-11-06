@@ -37,7 +37,7 @@ gc()
 #' v) It collapses the data to county-year-level.
 
 # List all merged files
-hmda_files <- list.files(paste0(TEMP, "/") , pattern = "merge")
+hmda_files <- list.files(paste0(TEMP, "/") , pattern = "hmda_merge")
 
 # Filter for all Commercial Banks
 # Core Problem less and less CB or their mortgage subdivisions are handing out 
