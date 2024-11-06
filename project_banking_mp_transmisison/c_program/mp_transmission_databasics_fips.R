@@ -21,7 +21,6 @@ gc()
 
 ################################################################################################################+
 
-
 # 1. Import US FIPS County Codes ===============================================
 
 # FIPS Code is the unique identifier of a county and consist of a 5-digit number.
