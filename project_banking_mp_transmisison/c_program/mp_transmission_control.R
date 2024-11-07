@@ -85,16 +85,28 @@ top_banks <- top_banks |>
 
 raw_sod <- raw_sod |> 
   left_join(top_banks, by = c("year", "rssdid")) |>
-  mutate(d_top_bank = ifelse(is.na(d_top_bank), 0, d_top_bank))
+  mutate(d_top_bank = ifelse(is.na(d_top_bank), 0, d_top_bank)) 
+  # group_by(year, fips) |>
+  # mutate(d_top_bank_test = ifelse())
 
-raw_sod <- raw_sod |>
-  group_by(year, fips) |>
-  mutate(nr_top_bank = sum(d_top_bank)) |> 
-  ungroup() |> 
-  distinct(year, fips, .keep_all = TRUE) |> 
-  select(-c("rssdid", "depsumcnty"))
+
+top_bank_counties <- raw_sod %>%
+  dplyr::group_by(year, fips) %>%
+  dplyr::summarize(d_top_bank = as.integer(any(d_top_bank == 1)), .groups = 'drop')
+
+raw_sod <- raw_sod |> 
+  select(-c(d_top_bank)) |> 
+  left_join(top_bank_counties, by = c("year", "fips"))
+
+
+
+# raw_sod <- raw_sod |>
+#   group_by(year, fips) |>
+#   mutate(nr_top_bank = sum(d_top_bank)) |> 
+#   ungroup() |> 
+#   distinct(year, fips, .keep_all = TRUE) |> 
+#   select(-c("rssdid", "depsumcnty"))
   
-
 
 # 2. Creating Control Dataset ==================================================
 
