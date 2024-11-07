@@ -22,16 +22,14 @@ gc()
 ################################################################################################################+
 
 
-# 2. Importing Summary of Deposits (by FDIC) for the years 2018 to 2024 ========
-## 2.1 Import Files ------------------------------------------------------------
+# 1. Importing Summary of Deposits (by FDIC) for the years 2018 to 2024 ========
+## 1.1 Import Files ------------------------------------------------------------
 
 # list all raw sod files in h_sod_direct
 files_sod <- list.files(paste0(A, "h_sod_direct/"))
 files_sod <- files_sod[grepl("\\csv$",files_sod)]
 years <- as.numeric(str_extract(files_sod, "\\d{4}"))
 files_sod <- files_sod[years >= 1994 & years <= 2017]
-
-# files_sod <-  files_sod[26]
 
 # Loop for importing all sod datasets from 1994 to 2024 
 for (i in files_sod) {
@@ -42,9 +40,7 @@ for (i in files_sod) {
   rm(file, year)
 }
 
-# test <- fread(paste0(A, "h_sod_direct/", files_sod))
-
-## 2.2 Append all raw SOD files ------------------------------------------------
+## 1.2 Append all raw SOD files ------------------------------------------------
 
 # Loop over all SOD datasets in order to create one large data frame for 
 # the years 1994 to 2024
@@ -95,7 +91,7 @@ for (i in seq_along(combined_sod)) {
   attr(combined_sod[[i]], "label") <- names_upper[i]
 }
 
-## 2.3 Basic Data Cleaning -----------------------------------------------------
+## 1.3 Basic Data Cleaning -----------------------------------------------------
 
 # Select the variables of interest
 combined_sod <- combined_sod[, .(year, stcntybr, uninumbr, depsumbr, insured, 
@@ -131,9 +127,13 @@ combined_sod <- combined_sod[!stnumbr %in% c("72", "66", "60", "69", "74", "78")
 # Validate the quality of the fips code by comparing the available fips code in
 # the SOD with a list of all fips code in the US from the US Census Bureau (MDR Education)
 # -> The SOD contains fips-codes that are not existing. The observations with the invalid fips-codes are excluded. 
-load(paste0(TEMP, "/", "fips_data.rda"))
+# load(paste0(TEMP, "/", "fips_data.rda"))
+fips_data <- LOAD(dfinput = "mp_transmission_databasics_fips")
 notvalid <- setdiff(fips_data$fips, combined_sod$fips)
 combined_sod <- combined_sod[!(fips %in% notvalid)]
+
+# Copy raw sod 
+raw_sod <- combined_sod
 
 # Restrict the dataset the year 2000 to 2017
 combined_sod <- combined_sod[year >= 2000 & year <= 2017]
@@ -159,14 +159,21 @@ setnames(combined_sod, old = c("stnumbr", "cntynumb"), new = c("state", "county"
 setcolorder(combined_sod,c("year", "fips", "state"))
 combined_sod[, stcntybr := NULL]
 
-## 2.4 Save datasets  ----------------------------------------------------------
+## 1.4 Save datasets  ----------------------------------------------------------
 
 # Create two different datasets
 # i. Only Commercial banks
 sod_banks <- combined_sod[insured == "CB"]
 sod_banks <- sod_banks[, insured := NULL]
 
-# Save Combined (raw) SOD dataset
+# ii. Raw Dataset on commercial banks
+raw_sod <- raw_sod[insured == "CB"]
+raw_sod <- raw_sod[, insured := NULL]
+
+# Save Combined SOD dataset
 SAVE(dfx = sod_banks, namex = MAINNAME)
+
+# Save raw sod dataset
+SAVE(dfx = raw_sod, namex = "raw_sod")
 
 ################################ END ##########################################+
