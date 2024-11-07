@@ -135,6 +135,9 @@ combined_sod <- combined_sod[!(fips %in% notvalid)]
 # Copy raw sod 
 raw_sod <- combined_sod
 
+
+## 1.4 Collapse combined_sod to county-year level ------------------------------
+
 # Restrict the dataset the year 2000 to 2017
 combined_sod <- combined_sod[year >= 2000 & year <= 2017]
 
@@ -159,21 +162,30 @@ setnames(combined_sod, old = c("stnumbr", "cntynumb"), new = c("state", "county"
 setcolorder(combined_sod,c("year", "fips", "state"))
 combined_sod[, stcntybr := NULL]
 
-## 1.4 Save datasets  ----------------------------------------------------------
+## 1.5 Collapse raw_sod to bank-county-year level ------------------------------
+
+# Select year and variables 
+raw_sod <- raw_sod[insured == "CB"]
+raw_sod <- raw_sod[, .(year, fips, stnumbr, depsumbr, rssdid)] 
+raw_sod <- raw_sod[year >= 2000 & year <= 2017]
+setcolorder(raw_sod, c("year", "fips", "stnumbr", "rssdid", "depsumbr"))
+
+# Collapse to bank-county-year level
+raw_sod <- raw_sod[, .(depsumcnty = sum(depsumbr)), by = .(year, fips, rssdid)]
+
+
+## 1.6 Save datasets  ----------------------------------------------------------
 
 # Create two different datasets
 # i. Only Commercial banks
 sod_banks <- combined_sod[insured == "CB"]
 sod_banks <- sod_banks[, insured := NULL]
 
-# ii. Raw Dataset on commercial banks
-raw_sod <- raw_sod[insured == "CB"]
-raw_sod <- raw_sod[, insured := NULL]
-
 # Save Combined SOD dataset
 SAVE(dfx = sod_banks, namex = MAINNAME)
 
 # Save raw sod dataset
 SAVE(dfx = raw_sod, namex = "raw_sod")
+
 
 ################################ END ##########################################+
