@@ -27,7 +27,8 @@ gc()
 # Create control variables based on variables available in the SOD
 
 # Load the Summary of Deposits for the period 1994 to 2020
-sod <- LOAD(dfinput = "banks_sod", dfextension = ".rda")
+# sod <- LOAD(dfinput = "banks_sod", dfextension = ".rda")
+sod <- LOAD(dfinput = "mp_transmission_databasics_sod", dfextension = ".rda")
 setDT(sod)
 
 # Restrict to the relevant variables
@@ -56,25 +57,67 @@ SAVE(dfx = sod, name = "controls_sod")
 # clear global environment
 rm(list = c("sod"))
 
+# 2. Creating a variable for firmsize
+
+# load dataset
+raw_sod <- LOAD(dfinput = "raw_sod")
+setDT(raw_sod)
+
+# Market power of commercial banks
+top_banks <- raw_sod[, .(depsumbank = sum(depsumcnty)), by = .(year, rssdid)]
+top_banks <- top_banks[, tot_marketvalue_yearly  := as.numeric(sum(depsumbank)), by = year]
+top_banks <- top_banks[, marketshare_yearly := depsumbank / tot_marketvalue_yearly]
+
+# Filter data
+# raw_sod <- raw_sod[marketshare_yearly > 0.01]
+
+top_banks <- top_banks |> 
+  group_by(year) |>
+  arrange(desc(marketshare_yearly)) |> 
+  slice_head(n = 5) |>
+  mutate(d_top_bank = 1) |>
+  ungroup() |> 
+  select(year, rssdid, d_top_bank)
+
+# marketshare <- top_banks |>
+#   group_by(year) |> 
+#   mutate(tot_market_share = sum(marketshare_yearly))
+
+raw_sod <- raw_sod |> 
+  left_join(top_banks, by = c("year", "rssdid")) |>
+  mutate(d_top_bank = ifelse(is.na(d_top_bank), 0, d_top_bank))
+
+raw_sod <- raw_sod |>
+  group_by(year, fips) |>
+  mutate(nr_top_bank = sum(d_top_bank)) |> 
+  ungroup() |> 
+  distinct(year, fips, .keep_all = TRUE)
+  
+
+
 # 2. Creating Control Dataset ==================================================
 
 # Import Population County dataset
-pop_cnty <- LOAD(dfinput = "pop_cnty")
+# pop_cnty <- LOAD(dfinput = "pop_cnty")
+pop_cnty <- LOAD(dfinput = "mp_transmission_databasics_pop")
 
 # Import Population State dataset
 pop_state <- LOAD(dfinput = "pop_state")
 
 # Import Unemployment Rate
-ur_cnty <- LOAD(dfinput = "ur_cnty")
+# ur_cnty <- LOAD(dfinput = "ur_cnty")
+ur_cnty <- LOAD(dfinput = "mp_transmission_databasics_ur")
 
 # Import Average Earnings Data
-qwi_earnings <- LOAD(dfinput = "qwi_earnings")
+# qwi_earnings <- LOAD(dfinput = "qwi_earnings")
+qwi_earnings <- LOAD(dfinput = "mp_transmission_databasics_qwi")
 
 # Import Controls from sod
 controls_sod <- LOAD(dfinput = "controls_sod")
 
 # Population density
-pop_density <- LOAD(dfinput = "landarea_data")
+# pop_density <- LOAD(dfinput = "landarea_data")
+pop_density <- LOAD(dfinput = "mp_transmission_databasics_landarea")
 
 # Combining datasets by county and year
 merged_data <- left_join(pop_cnty, controls_sod, by = c("fips", "year"))
