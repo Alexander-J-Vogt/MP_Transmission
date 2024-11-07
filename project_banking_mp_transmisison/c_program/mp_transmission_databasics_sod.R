@@ -150,7 +150,7 @@ check_obs <- check_obs |> distinct(fips, year)
 
 # Irrelevant warning that is supressed. Warning is related to the data.table package.
 check_obs <- suppressWarnings(check_obs[, ones := 1])
-
+  
 # Determine the counties that are observed over all periods and filter for those counties
 county_matrix <- dcast(check_obs, fips ~ year, value.var = "ones", fill = 0)
 setDT(county_matrix)
