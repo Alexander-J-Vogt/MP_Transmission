@@ -91,7 +91,8 @@ raw_sod <- raw_sod |>
   group_by(year, fips) |>
   mutate(nr_top_bank = sum(d_top_bank)) |> 
   ungroup() |> 
-  distinct(year, fips, .keep_all = TRUE)
+  distinct(year, fips, .keep_all = TRUE) |> 
+  select(-c("rssdid", "depsumcnty"))
   
 
 
@@ -124,6 +125,7 @@ merged_data <- left_join(pop_cnty, controls_sod, by = c("fips", "year"))
 merged_data <- left_join(merged_data, qwi_earnings, by = c("fips", "year"))
 merged_data <- left_join(merged_data, ur_cnty, by = c("fips", "year"))
 merged_data <- left_join(merged_data, pop_density, by = "fips")
+merged_data <- left_join(merged_data, raw_sod, by = c("year", "fips"))
 
 # 3. Variable Creation =========================================================
 
