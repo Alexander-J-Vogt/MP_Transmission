@@ -20,9 +20,8 @@ MAINNAME <- substr(MAINNAME,1,nchar(MAINNAME)-2) #cut off .R
 gc()
 
 ################################################################################################################+
-# MAIN PART ####
 
-# 1. Plot FFR Over Time [NOT SAVED] ============================================
+# 1. Plot FFR Over Time [SAVED] ================================================
 
 # Load data on federal fund rate
 ffr_monthly <- LOAD(dfinput = "ffr")
@@ -37,7 +36,7 @@ ffr_annual <- ffr_annual[, c("year", "ffr_mean")]
 ffr_main <- merge(ffr_monthly, ffr_annual, by = c("year"))
 ffr_main <- ffr_main[inrange(year, 2002, 2016)]
 
-# Display evoluation of monthly and annual federal funds rate
+# Display evolution of monthly and annual federal funds rate
 graph_ffr <- ggplot() +
   # Plotting the mean federal funds rate with a red line
   geom_line(data = ffr_main, aes(x = date, y = ffr_mean), color = "red", size = 1.1, linetype = "dashed") +
@@ -77,13 +76,15 @@ graph_ffr <- ggplot() +
   )
 
 # Save as pdf
-ggsave(filename = paste0(FIGURE, "graph_ffr.png"), plot = graph_ffr, device = "png", width = 10, height = 6)
-
+if (PRODUCE_FIGS) {
+ggsave(filename = paste0(FIGURE, "graph_ffr.pdf"), plot = graph_ffr, device = "pdf", width = 10, height = 6)
+}
 
 # 2. GDP Time Line [NOT SAVED] =================================================
 
 # Load data on GDP of U.S.
-gdp_data <- LOAD(dfinput = "gdp_data")
+# gdp_data <- LOAD(dfinput = "gdp_data")
+gdp_data <- LOAD(dfinput = "mp_transmission_databasics_gdp")
 setDT(gdp_data)
 
 # Restrict and format variables
@@ -171,7 +172,7 @@ ggplot() +
 # 4. Plot Mortgage Loan Amount [NOT SAVED] =====================================
 
 # Load data
-main <- LOAD(dfinput = "main_banks_data")
+main <- LOAD(dfinput = "mp_transmission_main")
 setDT(main)
 
 # Restrict data to relevant variables
@@ -227,14 +228,16 @@ ggplot(data = mortgage ) +
 
 
 
-# 5. Analyse the attrition of counties =========================================
+# 5. Analyse the attrition of counties [SAVED] =================================
 
 # Load main dataset
-main_banks_data <- LOAD(dfinput = "main_banks_data")
+main_banks_data <- LOAD(dfinput = "mp_transmission_main")
 setDT(main_banks_data)
 
 # Load dataset on all counties by fips
-load(paste0(TEMP, "/", "fips_data.rda"))
+# load(paste0(TEMP, "/", "fips_data.rda"))
+fips_data <- LOAD(dfinput = "mp_transmission_databasics_fips")
+setDT(fips_data)
 
 # Check the number of counties of the united states
 state_counties <- fips_data[, .N, by = .(state_code)]
@@ -263,7 +266,9 @@ attrition_county <- ggplot() +
   scale_y_continuous(breaks = seq(0, max(state_counties$N), by = 25))
 
 # save plot as pdf
+if (PRODUCE_FIGS) {
 ggsave(filename = paste0(FIGURE, "attrition_county",".png") , plot = attrition_county, width = 4, height = 4)
+}
 
 # Attrition in Numbers
 n_cnty <- sum(banks_state_cnty$N)
@@ -272,5 +277,66 @@ n <- sum(state_counties$N)
 # Attrition:
 sh_attrition <- (n - n_cnty) / n
 abs_attrition <- n - n_cnty
+
+
+# 6. Plotting Marketshare of Top 5 Banks over time [SAVE] ======================
+
+# load dataset
+raw_sod <- LOAD(dfinput = "raw_sod")
+setDT(raw_sod)
+
+# Market power of commercial banks
+raw_sod <- raw_sod[, .(depsumbank = sum(depsumcnty)), by = .(year, rssdid)]
+raw_sod <- raw_sod[, tot_marketvalue_yearly  := as.numeric(sum(depsumbank)), by = year]
+raw_sod <- raw_sod[, marketshare_yearly := depsumbank / tot_marketvalue_yearly]
+
+# Filter data
+raw_sod <- raw_sod[marketshare_yearly > 0.01]
+
+# Plotting market share density for each year for all banks with more tha 1% marketshare
+ggplot(raw_sod, aes(x = marketshare_yearly, color = factor(year))) +
+  geom_density(linewidth = 0.9) +
+  # scale_color_manual(values = rep("black", length(unique(raw_sod$year)))) +
+  labs(x = "Variable", y = "Density", color = "Year") +
+  theme_minimal()
+
+# Determine top 5 banks
+top_banks <- raw_sod %>%
+  group_by(year) %>%
+  arrange(desc(marketshare_yearly)) %>%
+  slice_head(n = 5) %>%
+  ungroup()
+
+# Sum up marketshare of the top 5 banks
+marketshare <- top_banks |>
+  group_by(year) |> 
+  mutate(tot_market_share = sum( marketshare_yearly)) |> 
+  distinct(year, tot_market_share)
+
+# Plotting the sum of market share of the top 5 banks
+graph_marketshare <- ggplot(data = marketshare, aes(x = year, y = tot_market_share)) +
+  geom_line(color = "blue", size = 1) +  # Line color and thickness
+  geom_point(color = "blue", size = 2) +  # Point color and size
+  labs(
+    title = "Total Market Share Over Time",
+    x = "Year",
+    y = "Total Market Share (in %)"
+  ) +
+  theme_minimal() +  # Minimal theme for a clean look
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),  # Center title, increase size, bold
+    axis.title.x = element_text(size = 12, margin = margin(t = 10)),  # X-axis label formatting
+    axis.title.y = element_text(size = 12, margin = margin(r = 10)),  # Y-axis label formatting
+    axis.text.x = element_text(angle = 45, hjust = 1)  # Rotate x-axis labels for readability
+  ) +
+  scale_x_continuous(breaks = seq(min(marketshare$year), max(marketshare$year), by = 1)) +  # Set x-axis breaks for each year
+  scale_y_continuous(limits = c(0.2, 0.5),
+                     breaks = seq(0.2, 0.5, by = 0.05),
+                     labels = scales::percent_format(scale = 1)) 
+
+# Save as pdf
+if (PRODUCE_FIGS) {
+  ggsave(filename = paste0(FIGURE, "graph_marketshare.pdf"), plot = graph_marketshare, device = "pdf", width = 10, height = 6)
+}
 
 ########################### ENDE ##############################################+
