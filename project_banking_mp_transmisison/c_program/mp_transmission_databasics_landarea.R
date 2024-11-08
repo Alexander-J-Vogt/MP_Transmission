@@ -21,7 +21,6 @@ gc()
 
 ################################################################################################################+
 
-
 # 1. Land Area of Counties =====================================================
 
 # Import data
@@ -40,7 +39,10 @@ landarea <- landarea[, landarea_sqm := as.numeric(landarea_sqm)]
 # Calculate land are per km
 landarea <- landarea[, landarea_sqkm := landarea_sqm / 1000000]
 
-# Save
+
+# 2. Save ======================================================================
+
 SAVE(dfx = landarea, namex = MAINNAME)
+
 
 ############################ ENDE #############################################+
