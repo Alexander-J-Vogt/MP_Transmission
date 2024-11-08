@@ -68,9 +68,7 @@ top_banks <- raw_sod[, .(depsumbank = sum(depsumcnty)), by = .(year, rssdid)]
 top_banks <- top_banks[, tot_marketvalue_yearly  := as.numeric(sum(depsumbank)), by = year]
 top_banks <- top_banks[, marketshare_yearly := depsumbank / tot_marketvalue_yearly]
 
-# Filter data
-# raw_sod <- raw_sod[marketshare_yearly > 0.01]
-
+# Get all top 5 banks for each year
 top_banks <- top_banks |> 
   group_by(year) |>
   arrange(desc(marketshare_yearly)) |> 
@@ -79,34 +77,17 @@ top_banks <- top_banks |>
   ungroup() |> 
   select(year, rssdid, d_top_bank)
 
-# marketshare <- top_banks |>
-#   group_by(year) |> 
-#   mutate(tot_market_share = sum(marketshare_yearly))
-
+# Merge top 5 banks by rssdid and year + Substitute all missings by 0
 raw_sod <- raw_sod |> 
   left_join(top_banks, by = c("year", "rssdid")) |>
   mutate(d_top_bank = ifelse(is.na(d_top_bank), 0, d_top_bank)) 
-  # group_by(year, fips) |>
-  # mutate(d_top_bank_test = ifelse())
 
-
-top_bank_counties <- raw_sod %>%
+# Variables is created in order to get an indicator whether a top 5 bank is in the 
+# county or not
+raw_sod <- raw_sod %>%
   dplyr::group_by(year, fips) %>%
   dplyr::summarize(d_top_bank = as.integer(any(d_top_bank == 1)), .groups = 'drop')
 
-raw_sod <- raw_sod |> 
-  select(-c(d_top_bank)) |> 
-  left_join(top_bank_counties, by = c("year", "fips"))
-
-
-
-# raw_sod <- raw_sod |>
-#   group_by(year, fips) |>
-#   mutate(nr_top_bank = sum(d_top_bank)) |> 
-#   ungroup() |> 
-#   distinct(year, fips, .keep_all = TRUE) |> 
-#   select(-c("rssdid", "depsumcnty"))
-  
 
 # 2. Creating Control Dataset ==================================================
 
@@ -151,8 +132,11 @@ merged_data <- merged_data[, pop_density := cnty_pop / landarea_sqkm]
 # Creating log emp
 merged_data <- merged_data[, log_emp := log(mean_emp)]
 
+# Creating log mean_earnings in order to get normally distributed variables
+merged_data[, log_earnings := log(mean_earning)]
+
 # Create lagged variables
-lagged_var <- c("cnty_pop", "mean_earning", "mean_emp", "ur")
+lagged_var <- c("mean_earning", "mean_emp", "ur", "log_earnings")
 for (i in lagged_var) {
   merged_data[, paste0("lag_", i) := shift(get(i), type = "lag"), by = fips]
 }
@@ -160,9 +144,6 @@ for (i in lagged_var) {
 # Calculate the change in earnings
 merged_data[, delta_earnings := mean_earning - shift(mean_earning, type = "lag")]
 
-# Creating log mean_earnings in order to get normally distributed variables
-merged_data[, log_earnings := log(mean_earning)]
-merged_data[, lag_log_earnings := shift(log_earnings, type = "lag"), by = fips]
 
 # 4. Saving ====================================================================
 
