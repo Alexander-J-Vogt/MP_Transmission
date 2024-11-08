@@ -67,7 +67,7 @@ gc()
 # 1. Load Data =================================================================
 
 # SET TRUE FOR PRODUCING GRAPHS
-PRODUCE_FIGS <- FALSE
+PRODUCE_FIGS <- TRUE
 
 # Load Data
 # df_base <- LOAD(dfinput = "main_banks_data")
@@ -77,30 +77,39 @@ setDT(df_base)
 
 # 02. Calculate the ATT  [INCLUDED IN PRESENTATION] ============================
 
+# Basic DiD regression
+base_formel <- c("lead_ln_loan_amount ~ d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator")
+
 # Different control set specifications
-formula_base <- as.formula(lead_ln_loan_amount ~ d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator | state | 0 | state)
-formula_ur <- as.formula(lead_ln_loan_amount ~ d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator + ur + log_earnings| state | 0 | state)
-formula_ur_msa <- as.formula(lead_ln_loan_amount ~ d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator  + ur + log_earnings + d_msa| state | 0 | state)
+formula_base <- as.formula(paste0(base_formel, " | state | 0 | state"))
+formula_ur <- as.formula(paste0(base_formel, " + ur + log_earnings| state | 0 | state"))
+formula_ur_msa <- as.formula(paste0(base_formel, " + ur + log_earnings + d_msa| state | 0 | state"))
+formula_ur_bank <- as.formula(paste0(base_formel, " + ur + log_earnings + d_top_bank | state | 0 | state"))
+formula_ur_bank_msa <- as.formula(paste0(base_formel, " + ur + log_earnings + d_top_bank + d_msa| state | 0 | state"))
 
 # list of formula names
-formula_list <- list(formula_base, formula_ur, formula_ur_msa)
+formula_list <- list(formula_base, formula_ur, formula_ur_msa, formula_ur_bank, formula_ur_bank_msa)
 
 # nameing the list accoriding to the formula
-names(formula_list) <- c("formula_base", "formula_ur", "formula_ur_msa")
+names(formula_list) <- c("formula_base", "formula_ur", "formula_ur_msa",
+                         "formula_ur_bank", "formula_ur_bank_msa")
 
 # Different additional covariate settings for pre-treatment effects
 cov_base <- c("")
 cov_ur <- c("+ ur + log_earnings")
 cov_ur_msa <- c("+ ur + log_earnings + d_msa")
+cov_ur_bank <- c("+ ur + log_earnings + d_top_bank")
+cov_ur_msa_bank <- c("+ ur + log_earnings + d_top_bank + d_msa")
+
 
 # Combine all covariate settings into a list
-covariate_list <- list(cov_base, cov_ur, cov_ur_msa)
+covariate_list <- list(cov_base, cov_ur, cov_ur_msa, cov_ur_bank, cov_ur_msa_bank)
 
 # Assign names for readability in results
-names(covariate_list) <- c("cov_base", "cov_ur", "cov_ur_msa")
+names(covariate_list) <- c("cov_base", "cov_ur", "cov_ur_msa", "cov_ur_bank", "cov_ur_msa_bank")
 
 # Define the range of anticipation values
-anticipation_values <- 0:2
+anticipation_values <- 0:1
 
 # Loop over anticipation values and store combined results with names
 combined_results_all <- setNames(
@@ -126,27 +135,32 @@ combined_results_all <- setNames(
 # Saving list element into more accessible object
 anticipation_0 <- combined_results_all$anticipation_0
 anticipation_1 <- combined_results_all$anticipation_1
-anticipation_2 <- combined_results_all$anticipation_2
 
 # Creating Graphs with GGDID (Own Function)
-gg_anticp0 <- GGDID(dfx = anticipation_0$cov_base)
-gg_anticp1 <- GGDID(dfx = anticipation_1$cov_ur)
+gg_anticp0 <- GGDID(dfx = anticipation_0$cov_ur_msa)
+gg_anticp1 <- GGDID(dfx = anticipation_1$cov_ur_msa)
+
+gg_anticp0_bank <- GGDID(dfx = anticipation_0$cov_ur_msa_bank)
+gg_anticp1_bank <- GGDID(dfx = anticipation_1$cov_ur_msa_bank)
 
 if (PRODUCE_FIGS) {
-  # Saving as pdf
+  # Saving as pdf - No Bank Indicator
   pdf(paste0(FIGURE, "did_graph_full_specifciation.pdf"), width = 14, height = 7)
   grid.arrange(gg_anticp0, gg_anticp1, ncol = 2)
   dev.off()
+  # Saving as pdf - Bank Indicator
+  pdf(paste0(FIGURE, "did_graph_bank.pdf"), width = 14, height = 7)
+  grid.arrange(gg_anticp0_bank, gg_anticp1_bank, ncol = 2)
+  dev.off()
 }
 
-## 03. Final specification with a formatted stargazer table  [INCLUDED IN PRESENTATION] ===================
+
+# 03. Final specification with a formatted stargazer table  [INCLUDED IN PRESENTATION] ===================
 
 # Restrict Period according to anticipation period & three periods after treatment
 df_antcp0 <- df_base[inrange(year, 2007, 2010)]
 df_antcp1 <- df_base[inrange(year, 2006, 2010)]
 
-# Basic DiD regression
-base_formel <- c("lead_ln_loan_amount ~ d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator")
 
 # Regressions without anticipation
 did1 <- felm(as.formula(paste0(base_formel, " | state | 0 | state")), data = df_antcp0, weights = 1/df_antcp0$cnty_pop)
@@ -273,7 +287,7 @@ stargazer(did13, did14, did15, did16, did17, did18,
           out = output_placebo_pre_results
           )
 
-# 06. Control for presence of Top 5 Banks in county ============================
+# 06. Presence of Top 5 Banks in county [INCLUDED IN PRESENTATION] =============
 
 # Controlling if one of the top 5 banks are available in a county 
 
@@ -285,20 +299,20 @@ df_antcp1 <- df_base[inrange(year, 2006, 2010)]
 base_formel <- c("lead_ln_loan_amount ~ d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator")
 
 # Regressions without anticipation
-did1 <- felm(as.formula(paste0(base_formel, " | state | 0 | state")), data = df_antcp0, weights = 1/df_antcp0$cnty_pop)
-did2 <- felm(as.formula(paste0(base_formel, " + ur + log_earnings + d_top_bank | state | 0 | state")), data = df_antcp0, weights = 1/df_antcp0$cnty_pop)
-did3 <- felm(as.formula(paste0(base_formel, " + ur + log_earnings + d_top_bank + d_msa| state | 0 | state")), data = df_antcp0, weights = 1/df_antcp0$cnty_pop)
+did19 <- felm(as.formula(paste0(base_formel, " | state | 0 | state")), data = df_antcp0, weights = 1/df_antcp0$cnty_pop)
+did20<- felm(as.formula(paste0(base_formel, " + ur + log_earnings + d_top_bank | state | 0 | state")), data = df_antcp0, weights = 1/df_antcp0$cnty_pop)
+did21 <- felm(as.formula(paste0(base_formel, " + ur + log_earnings + d_top_bank + d_msa| state | 0 | state")), data = df_antcp0, weights = 1/df_antcp0$cnty_pop)
 
 # Regressions without anticipation
-did4 <- felm(as.formula(paste0(base_formel, " | state | 0 | state")), data = df_antcp1, weights = 1/df_antcp1$cnty_pop)
-did5 <- felm(as.formula(paste0(base_formel, " + ur + log_earnings + d_top_bank | state | 0 | state")), data = df_antcp1, weights = 1/df_antcp1$cnty_pop)
-did6 <- felm(as.formula(paste0(base_formel, " + ur + log_earnings + d_top_bank + d_msa| state | 0 | state")), data = df_antcp1, weights = 1/df_antcp1$cnty_pop)
+did22 <- felm(as.formula(paste0(base_formel, " | state | 0 | state")), data = df_antcp1, weights = 1/df_antcp1$cnty_pop)
+did23 <- felm(as.formula(paste0(base_formel, " + ur + log_earnings + d_top_bank | state | 0 | state")), data = df_antcp1, weights = 1/df_antcp1$cnty_pop)
+did24 <- felm(as.formula(paste0(base_formel, " + ur + log_earnings + d_top_bank + d_msa| state | 0 | state")), data = df_antcp1, weights = 1/df_antcp1$cnty_pop)
 
 # Condition to print out figures and tables
 output_robust_results <- if (PRODUCE_FIGS) paste0(LATEX, "regression_robust_results.tex") else NULL
 
 # Stargazer table
-stargazer(did1, did2, did3, did4, did5, did6,
+stargazer(did19, did20, did21, did22, did23, did24,
           type = "text",
           digits = 3,
           dep.var.caption  = "Dependent Variable: Log One-Year Ahead Mortgage Loan Amount",
@@ -317,7 +331,7 @@ stargazer(did1, did2, did3, did4, did5, did6,
           notes.append = TRUE,
           notes = "Column (1) and (4): Baseline | Column (2) and (5): Control Set 1 + Top 5 Banks | Column (3) and (6): Control Set 2 + Top 5 Banks",
           out = output_robust_results
-)
+          )
 
 
 ############################## END ############################################+
