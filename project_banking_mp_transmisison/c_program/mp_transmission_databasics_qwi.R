@@ -68,6 +68,8 @@ earnings_data <- merge(earnings_data, pop_cnty_data, by = c("fips", "year"))
 earnings_data <- earnings_data[, share_emp := mean_emp / cnty_pop]
 earnings_data <- earnings_data[, c("state", "cnty_pop") := NULL]
 
+# 2. Save ======================================================================
+
 # SAVE
 SAVE(dfx = earnings_data, namex = MAINNAME)
 
