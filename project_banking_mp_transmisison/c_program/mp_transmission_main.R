@@ -1,6 +1,6 @@
-# TARGET: 
-# INDATA: 
-# OUTDATA/ OUTPUT:
+# TARGET: Get dataset with no missing variables
+# INDATA: mp_transmission_merge
+# OUTDATA/ OUTPUT: mp_transmission_main
 
 ################################################################################################################+
 # INTRO	script-specific ####
