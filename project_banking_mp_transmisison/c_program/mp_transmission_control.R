@@ -135,16 +135,6 @@ merged_data <- merged_data[, log_emp := log(mean_emp)]
 # Creating log mean_earnings in order to get normally distributed variables
 merged_data[, log_earnings := log(mean_earning)]
 
-# Create lagged variables
-lagged_var <- c("mean_earning", "mean_emp", "ur", "log_earnings")
-for (i in lagged_var) {
-  merged_data[, paste0("lag_", i) := shift(get(i), type = "lag"), by = fips]
-}
-
-# Calculate the change in earnings
-merged_data[, delta_earnings := mean_earning - shift(mean_earning, type = "lag")]
-
-
 # 4. Saving ====================================================================
 
 # save dataset
