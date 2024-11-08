@@ -27,12 +27,8 @@ gc()
 # Loading Mortgage Data from Outcome Script
 # Dataset that only includes Commercial Banks and their Mortgage Subdivisions
 # that lended mortgages
-# outcome_banks_data <- LOAD(dfinput = "hmda_banks")
 outcome_banks_data <- LOAD(dfinput = "mp_transmission_outcome")
 setDT(outcome_banks_data)
-
-# Delete year 2007 due to variable that got leaded 
-outcome_banks_data[year != 2017]
 
 # Loading treatment data from Treatment Script
 # (important as this contains counties, which are observed over all time periods in the SOD)
