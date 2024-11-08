@@ -64,14 +64,15 @@ source(paste0(DO,input,sep=""), echo=TRUE, max=1000)
 # MAIN PART ####
 
 # Code to read-in hmda files takes a lot of time
-RUNLONGCODE <- FALSE
+RUNLONGCODE <- TRUE
 
-if (RUNLONGCODE) {
+# Set the following variable true if figures and table should be produced
+PRODUCE_FIGS <- TRUE
   
 #############################################+
 # read-in + basic editing of raw data: create base df ####
-input <- 'mp_transmission_databasics.R'
-source(paste0(DO,input,sep=""), echo=TRUE, max=1000)
+# input <- 'mp_transmission_databasics.R'
+# source(paste0(DO,input,sep=""), echo=TRUE, max=1000)
 
 input <- 'mp_transmission_databasics_fips.R'
 source(paste0(DO,input,sep=""), echo=TRUE, max=1000)
@@ -79,8 +80,10 @@ source(paste0(DO,input,sep=""), echo=TRUE, max=1000)
 input <- 'mp_transmission_databasics_sod.R'
 source(paste0(DO,input,sep=""), echo=TRUE, max=1000)
 
+if (RUNLONGCODE) {
 input <- 'mp_transmission_databasics_hmda.R'
 source(paste0(DO,input,sep=""), echo=TRUE, max=1000)
+}
 
 input <- 'mp_transmission_databasics_ffr.R'
 source(paste0(DO,input,sep=""), echo=TRUE, max=1000)
@@ -111,7 +114,7 @@ source(paste0(DO,input,sep=""), echo=TRUE, max=1000)
 input <- 'mp_transmission_control.R'
 source(paste0(DO,input,sep=""), echo=TRUE, max=1000)
 
-}
+
 
 #############################################+
 # merge outcome, treatment and control variables
