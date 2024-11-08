@@ -20,7 +20,6 @@ MAINNAME <- substr(MAINNAME,1,nchar(MAINNAME)-2) #cut off .R
 gc()
 
 ################################################################################################################+
-# MAIN PART ####
 
 
 # 1. Federal Funds Rate ========================================================
@@ -38,7 +37,10 @@ ffr_data <- ffr_data[, year := as.integer(substr(date, 1, 4))]
 # Format date variable
 ffr_data <- ffr_data[, date := as.Date(date)]
 
-# Save Data
+
+# 2. Save ======================================================================
+
 SAVE(dfx = ffr_data, name = MAINNAME)
+
 
 ################################ END ##########################################+
