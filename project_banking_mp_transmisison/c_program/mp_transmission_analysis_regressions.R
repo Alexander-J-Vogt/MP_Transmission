@@ -67,10 +67,11 @@ gc()
 # 1. Load Data =================================================================
 
 # SET TRUE FOR PRODUCING GRAPHS
-PRODUCE_FIGS <- TRUE
+PRODUCE_FIGS <- FALSE
 
 # Load Data
-df_base <- LOAD(dfinput = "main_banks_data")
+# df_base <- LOAD(dfinput = "main_banks_data")
+df_base <- LOAD(dfinput = "mp_transmission_main")
 setDT(df_base)
 
 
@@ -271,5 +272,52 @@ stargazer(did13, did14, did15, did16, did17, did18,
           notes = "Column (1) and (4): Baseline | Column (2) and (5): Control Set 1 | Column (3) and (6): Control Set 2",
           out = output_placebo_pre_results
           )
+
+# 06. Control for presence of Top 5 Banks in county ============================
+
+# Controlling if one of the top 5 banks are available in a county 
+
+# Restrict Period according to anticipation period & three periods after treatment
+df_antcp0 <- df_base[inrange(year, 2007, 2010)]
+df_antcp1 <- df_base[inrange(year, 2006, 2010)]
+
+# Basic DiD regression
+base_formel <- c("lead_ln_loan_amount ~ d_median_all_pre + d_ffr_indicator + d_median_all_pre:d_ffr_indicator")
+
+# Regressions without anticipation
+did1 <- felm(as.formula(paste0(base_formel, " | state | 0 | state")), data = df_antcp0, weights = 1/df_antcp0$cnty_pop)
+did2 <- felm(as.formula(paste0(base_formel, " + ur + log_earnings + d_top_bank | state | 0 | state")), data = df_antcp0, weights = 1/df_antcp0$cnty_pop)
+did3 <- felm(as.formula(paste0(base_formel, " + ur + log_earnings + d_top_bank + d_msa| state | 0 | state")), data = df_antcp0, weights = 1/df_antcp0$cnty_pop)
+
+# Regressions without anticipation
+did4 <- felm(as.formula(paste0(base_formel, " | state | 0 | state")), data = df_antcp1, weights = 1/df_antcp1$cnty_pop)
+did5 <- felm(as.formula(paste0(base_formel, " + ur + log_earnings + d_top_bank | state | 0 | state")), data = df_antcp1, weights = 1/df_antcp1$cnty_pop)
+did6 <- felm(as.formula(paste0(base_formel, " + ur + log_earnings + d_top_bank + d_msa| state | 0 | state")), data = df_antcp1, weights = 1/df_antcp1$cnty_pop)
+
+# Condition to print out figures and tables
+output_robust_results <- if (PRODUCE_FIGS) paste0(LATEX, "regression_robust_results.tex") else NULL
+
+# Stargazer table
+stargazer(did1, did2, did3, did4, did5, did6,
+          type = "text",
+          digits = 3,
+          dep.var.caption  = "Dependent Variable: Log One-Year Ahead Mortgage Loan Amount",
+          column.labels = c("Anticipation: 0 Years", "Anticipation: 1 Year"),
+          column.separate = c(3, 3),
+          dep.var.labels.include = FALSE,
+          model.names = FALSE,
+          covariate.labels = c("Dummy: Market Concentration", "Dummy: Great Recession",
+                               "Unemployment Rate", "Log Earnings", "Dummy: Top 5 Bank" ,"Dummy: MSA", "DiD Estimator"),
+          add.lines = list(
+            c("State FE:", "True", "True", "True", "True", "True", "True"),
+            c("Clustered SE on State-Level:", "True", "True", "True", "True", "True", "True")
+          ),
+          omit.stat = c("LL", "ser", "f", "rsq"),
+          no.space = FALSE,
+          notes.append = TRUE,
+          notes = "Column (1) and (4): Baseline | Column (2) and (5): Control Set 1 + Top 5 Banks | Column (3) and (6): Control Set 2 + Top 5 Banks",
+          out = output_robust_results
+)
+
 
 ############################## END ############################################+
