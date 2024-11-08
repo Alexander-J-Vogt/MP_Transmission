@@ -27,7 +27,6 @@ gc()
 ## 1.1 Load the Dataset ---------------------------------------------------------
 
 # Load the Summary of Deposits for the period 1994 to 2020
-# sod <- LOAD(dfinput = "banks_sod", dfextension = ".rda")
 sod <- LOAD(dfinput = "mp_transmission_databasics_sod", dfextension = ".rda")
 setDT(sod)
 
@@ -69,7 +68,7 @@ sod <- sod[, .(hhi = sum(bank_market_share_sq)), by = .(fips, year)]
 # Calculate the mean HHI for each county over the period 2004 to 2008
 # Result: Contains observations on county-level (no annual data!)
 sod_hhi <- sod[, .(mean_hhi = mean(hhi)), by = fips]
-sod_hhi_pre <- sod[year >= 2004 & year <= 2008, .(mean_hhi_pre = mean(hhi)), by = fips]
+sod_hhi_pre <- sod[year >= 2004 & year < 2008, .(mean_hhi_pre = mean(hhi)), by = fips]
 sod_hhi <- merge(sod_hhi, sod_hhi_pre, by = c("fips"))
 
 # Create dummy variable for counties with HHI of 10000. Counties with HHI 10000
@@ -88,22 +87,12 @@ sod <- base::merge(sod, sod_highconc, by = "fips")
 # control group in the main SOD datase. Thereby, sod_hhi (mean hhi on county-level)
 # is used to determine median, mean and q70 of the mean_hhi.
 
-# Datasets with the following are resticted:
-# all: Includes counties with hhi == 10000
-# rest: Exldues counties with hhi == 10000
-
 # a) Threshold: Median
 # All Counties
 median_hhi_all <- median(sod_hhi$mean_hhi)
 median_hhi_all_pre <- median(sod_hhi$mean_hhi_pre)
 sod <- sod[, d_median_all := ifelse(mean_hhi > median_hhi_all, 1, 0)]
 sod <- sod[, d_median_all_pre := ifelse(mean_hhi > median_hhi_all_pre, 1, 0)]
-
-# Exclude Counties with HHI = 10000 over all periods
-median_hhi_rest <- median(sod_hhi[d_hhi_max == 0,]$mean_hhi)
-median_hhi_rest_pre <- median(sod_hhi[d_hhi_max == 0,]$mean_hhi_pre)
-sod <- sod[, d_median_rest := ifelse(mean_hhi > median_hhi_rest, 1, 0)]
-sod <- sod[, d_median_rest_pre := ifelse(mean_hhi > median_hhi_rest_pre, 1, 0)]
 
 # b) Threshold: Mean
 # All Counties
@@ -112,26 +101,13 @@ mean_hhi_all_pre <- mean(sod_hhi$mean_hhi_pre)
 sod <- sod[, d_mean_all := ifelse(mean_hhi > mean_hhi_all, 1, 0)]
 sod <- sod[, d_mean_all_pre := ifelse(mean_hhi > mean_hhi_all_pre, 1, 0)]
 
-# Exclude Counties with HHI = 10000 over all periods
-mean_hhi_rest <- median(sod_hhi[d_hhi_max == 0,]$mean_hhi)
-mean_hhi_rest_pre <- median(sod_hhi[d_hhi_max == 0,]$mean_hhi_pre)
-sod <- sod[, d_mean_rest := ifelse(mean_hhi > mean_hhi_rest, 1, 0)]
-sod <- sod[, d_mean_rest_pre := ifelse(mean_hhi > mean_hhi_rest_pre, 1, 0)]
-
 # c) Threshold: Market Definition of a highly-concentrated market (HHI > 2500)
 # All counties
 sod <- sod[, d_marketdef_all := ifelse(mean_hhi > 2500, 1, 0)]
 
-# Exclude counties with HHI = 10000 over all periods
-sod <- sod[, d_marketdef_rest := ifelse((mean_hhi > 2500) & (d_hhi_max == 0), 1, 0)]
-
 # d) Threshold: 70 percentile 
 q70_hhi_all <- quantile(sod_hhi$mean_hhi, probs = 0.70)
 sod <- sod[, d_q70_all := ifelse(mean_hhi > q70_hhi_all, 1, 0)]
-
-# Exclude Counties with HHI = 10000 over all periods
-q70_hhi_rest <- quantile(sod_hhi$mean_hhi, probs = 0.70)
-sod <- sod[, d_q70_rest := ifelse(mean_hhi > q70_hhi_rest, 1, 0)]
 
 # Save dataset
 SAVE(dfx = sod, name = "SOD_final")
@@ -181,6 +157,3 @@ SAVE(treatment_data, namex = MAINNAME)
 
 
 ########################## ENDE ###############################################+
-
-
-
