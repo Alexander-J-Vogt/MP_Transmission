@@ -25,9 +25,10 @@ gc()
 # 1. Merging the dataset from outcome, treatment and control script ============
 
 # Loading Mortgage Data from Outcome Script
-# a) Dataset that only includes Commercial Banks and their Mortgage Subdivisions
+# Dataset that only includes Commercial Banks and their Mortgage Subdivisions
 # that lended mortgages
-outcome_banks_data <- LOAD(dfinput = "hmda_banks")
+# outcome_banks_data <- LOAD(dfinput = "hmda_banks")
+outcome_banks_data <- LOAD(dfinput = "mp_transmission_outcome")
 setDT(outcome_banks_data)
 
 # Delete year 2007 due to variable that got leaded 
@@ -50,10 +51,15 @@ controls_data <- controls_data[, state := NULL]
 banks_data <- full_join(outcome_banks_data, treatment_data, by = c("fips", "year"))
 banks_data <- full_join(banks_data, controls_data, by = c("fips", "year"))
 
-# 3. Saving ====================================================================
+# 3. Exclude non-relevant variables ============================================
+
+# Deselect variables
+banks_data <- banks_data[, c("date", "landarea_sqm", "ffr") := NULL]
+
+# 4. Saving ====================================================================
 
 # Save
-SAVE(dfx = banks_data, namex = "banks_data_joined")
+SAVE(dfx = banks_data, namex = MAINNAME)
 
 
 ########################## ENDE ###############################################+
