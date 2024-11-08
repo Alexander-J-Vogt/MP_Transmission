@@ -20,13 +20,13 @@ MAINNAME <- substr(MAINNAME,1,nchar(MAINNAME)-2) #cut off .R
 gc()
 
 ################################################################################################################+
-# MAIN PART ####
+
 
 # Explanation:
 # This script produces for each year a .rda-file as combining all datasets without 
 # firstly collapsing them to county level would lead to a significant increase in
 # computing time. Thus, in mp_transmission_otucome, each dataset gets cleaned and 
-# is than collapsed to county-level and the county-level hmda datsets are than 
+# is than collapsed to county-level and the county-level hmda datasets are than 
 # appended.
 
 # 1. Import Data from the Housing Mortgage Disclosure Act ======================
