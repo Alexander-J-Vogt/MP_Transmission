@@ -1,6 +1,6 @@
-# TARGET: 
-# INDATA: 
-# OUTDATA/ OUTPUT:
+# TARGET: Descriptive Statistics on various variables
+# INDATA: Several
+# OUTDATA/ OUTPUT: No output
 
 ################################################################################################################+
 # INTRO	script-specific ####
@@ -25,11 +25,8 @@ gc()
 # 0. Import the main datasets ==================================================
 
 # Load main dataset
-main_banks_data <- LOAD(dfinput = "main_banks_data")
+main_banks_data <- LOAD(dfinput = "mp_transmission_main")
 setDT(main_banks_data)
-
-# Load dataset on all counties by fips
-load(paste0(TEMP, "/", "fips_data.rda"))
 
 
 # 1. Check the distribution of treatment and control group =====================
@@ -101,6 +98,7 @@ for (plot in mean_value_plots) {
   print(plot)
 }
 
+if (PRODUCE_FIGS) {
 # Loop through each plot in the mean_value_plots list
 for (i in seq_along(mean_value_plots)) {
   
@@ -113,18 +111,18 @@ for (i in seq_along(mean_value_plots)) {
   # Save the plot using ggsave
   ggsave(filename = paste0(FIGURE, filename), plot = plot, device = "png", width = 10, height = 6)
 }
-
+}
 
 # 3. Descriptive Statistics of yearly data =====================================
 
 # Restrict data to relevant variables
 des_stats <- main_banks_data[, c("year", "total_amount_loan", "lead_ln_loan_amount", 
                                  "hhi", "cnty_pop", "pop_density", "mean_earning", "log_earnings",
-                                 "mean_emp", "ur", "lag_ur","log_emp")]
+                                 "mean_emp", "ur", "log_emp")]
 
 # Vector with relevant variable names
 update_key_var <- c("lead_ln_loan_amount", "hhi", "cnty_pop", "pop_density", "ur", 
-                    "lag_ur", "mean_emp", "log_emp", "mean_earning", "log_earnings")
+                    "mean_emp", "log_emp", "mean_earning", "log_earnings")
 
 # Initate empty list
 descriptive_stats <- list()
@@ -169,12 +167,11 @@ dev.off()
 # 5. Density of Earning ========================================================
 
 # Density plot for earnings and log earnings
-ggplot() +
+graph_logearning <- ggplot() +
   geom_density(data = main_banks_data, aes(x = log(mean_earning)), color = "red")
 
-ggplot() + 
+graph_earning <- ggplot() + 
   geom_density(data = main_banks_data, aes(x = mean_earning), color = "blue")
-
 
 
 ############################### ENDE ##########################################+
