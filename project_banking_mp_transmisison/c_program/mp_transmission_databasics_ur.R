@@ -20,10 +20,8 @@ MAINNAME <- substr(MAINNAME,1,nchar(MAINNAME)-2) #cut off .R
 gc()
 
 ################################################################################################################+
-# MAIN PART ####
 
-
-# 6. Import Unemployment Data ==================================================
+# 1. Import Unemployment Data ==================================================
 
 # Import unemployment data on county level from the economic research service
 unemp_data <- read_xlsx(paste0(A, "e_economic_research_service/", "Unemployment.xlsx"), skip = 4, col_types = "text")
