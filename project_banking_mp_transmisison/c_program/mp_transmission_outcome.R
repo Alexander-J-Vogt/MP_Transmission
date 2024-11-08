@@ -27,7 +27,7 @@ gc()
 #' This section performs a standardized way to do some basic cleaning of data
 #' and collapses the data to county-level with the help of the COUNTYLEVEL function.
 #'
-#' What does COUNTYLEVEL-function do?
+#' What does the COUNTYLEVEL-function do?
 #' i) It allows to filter either for Commercial Banks and their subdivisions,
 #' which lend mortgages or to exclude the filter. I
 #' -> instfilter: institution filter for commercial banks (TRUE: Only Commercial banks)
@@ -48,28 +48,18 @@ mortgages_banks <- lapply(hmda_files, COUNTYLEVEL, instfilter = TRUE)
 hmda_banks <- bind_rows(mortgages_banks)
 
 # 2. Creating Variable =========================================================
-# Create weights for counties
-# pop_cnty <- LOAD(dfinput = "pop_cnty")
-pop_cnty <- LOAD(dfinput = "mp_transmission_databasics_pop")
-setDT(pop_cnty)
+hmda_banks[, state := substr(fips, 1, 2)] 
 
-# Merge hmda dataset with population dataset
-hmda_banks <- merge(hmda_banks, pop_cnty, by = c("fips", "year"), all.x = TRUE)
-
-# Create several variables with logs and leads, weighted and not weighted outcome variables
-hmda_banks[, wtd_loan_amount := total_amount_loan / cnty_pop]
+# Create loan amount variables
 hmda_banks[, ln_loan_amount := log(total_amount_loan)]
-hmda_banks[, ln_wtd_loan_amount := log(total_amount_loan)]
-hmda_banks[, lead_wtd_loan_amount := shift(wtd_loan_amount, type = "lead"), by = fips]
 hmda_banks[, lead_ln_loan_amount := shift(ln_loan_amount, type = "lead"), by = fips]
-hmda_banks[, lead_ln_wtd_loan_amount := shift(ln_wtd_loan_amount, type = "lead"), by = fips]
 
 # Deselect relevant variables
-hmda_banks[, c("cnty_pop") := NULL]
 setcolorder(hmda_banks, c("year", "fips", "state"))
 
-# Save
-# SAVE(dfx = hmda_banks, namex = "hmda_banks")
+
+# 3. Save ======================================================================
+
 SAVE(dfx = hmda_banks, namex = MAINNAME)
 
 ########################## ENDE ###############################################+
