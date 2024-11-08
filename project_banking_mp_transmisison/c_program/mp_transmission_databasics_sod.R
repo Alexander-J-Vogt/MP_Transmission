@@ -23,6 +23,7 @@ gc()
 
 
 # 1. Importing Summary of Deposits (by FDIC) for the years 2018 to 2024 ========
+
 ## 1.1 Import Files ------------------------------------------------------------
 
 # list all raw sod files in h_sod_direct
@@ -114,10 +115,7 @@ combined_sod <- combined_sod[, specdesc := gsub("\\$", "", specdesc)]
 
 # Create fips-code by combining the state and county code
 combined_sod <- combined_sod[stnumbr != "" & cntynumb != ""]
-combined_sod <- combined_sod[, stnumbr := ifelse(nchar(stnumbr) == 1, paste0("0", stnumbr), stnumbr)]
-combined_sod <- combined_sod[, cntynumb := ifelse(nchar(cntynumb) == 2, paste0("0", cntynumb), cntynumb)]
-combined_sod <- combined_sod[, cntynumb := ifelse(nchar(cntynumb) == 1, paste0("00", cntynumb), cntynumb)]
-combined_sod <- combined_sod[, fips := paste0(stnumbr, cntynumb)]
+combined_sod <- FIPSCREATOR(data = combined_sod, state_col = "stnumbr", county_col = "cntynumb")
 
 # Excluding the following US territories as they are not relevant for the analysis: 
 # Puerto Rico (72), US Virgin Islands (78), American Samoa (60), 
