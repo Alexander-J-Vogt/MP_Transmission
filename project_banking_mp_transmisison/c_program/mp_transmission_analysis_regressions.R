@@ -193,7 +193,6 @@ stargazer(did1, did2, did3, did4, did5, did6,
           omit.stat = c("LL", "ser", "f", "rsq"),
           no.space = FALSE, 
           notes.append = TRUE,
-          notes = "Column (1) and (4): Baseline | Column (2) and (5): Control Set 1 | Column (3) and (6): Control Set 2",
           out = output_main_results
           )
 
@@ -238,7 +237,6 @@ stargazer(did7, did8, did9, did10, did11, did12,
           omit.stat = c("LL", "ser", "f", "rsq"),
           no.space = FALSE,
           notes.append = TRUE,
-          notes = "Column (1) and (4): Baseline | Column (2) and (5): Control Set 1 | Column (3) and (6): Control Set 2",
           out = output_placebo_post_results
           )
 
@@ -283,7 +281,6 @@ stargazer(did13, did14, did15, did16, did17, did18,
           omit.stat = c("LL", "ser", "f", "rsq"),
           no.space = FALSE,
           notes.append = TRUE,
-          notes = "Column (1) and (4): Baseline | Column (2) and (5): Control Set 1 | Column (3) and (6): Control Set 2",
           out = output_placebo_pre_results
           )
 
@@ -329,7 +326,7 @@ stargazer(did19, did20, did21, did22, did23, did24,
           omit.stat = c("LL", "ser", "f", "rsq"),
           no.space = FALSE,
           notes.append = TRUE,
-          notes = "Column (1) and (4): Baseline | Column (2) and (5): Control Set 1 + Top 5 Banks | Column (3) and (6): Control Set 2 + Top 5 Banks",
+          # notes = "Column (1) and (4): Baseline | Column (2) and (5): Control Set 1 + Top 5 Banks | Column (3) and (6): Control Set 2 + Top 5 Banks",
           out = output_robust_results
           )
 
