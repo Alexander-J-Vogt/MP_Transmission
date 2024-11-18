@@ -174,4 +174,64 @@ graph_earning <- ggplot() +
   geom_density(data = main_banks_data, aes(x = mean_earning), color = "blue")
 
 
+# 6. Descriptive Statistics for relevant variables =============================
+
+main <- LOAD(dfinput = "mp_transmission_main")
+setDT(main)
+
+main <- main[, .(fips, year, total_amount_loan, lead_ln_loan_amount, hhi, mean_hhi, d_median_all_pre, 
+                 cnty_pop, d_msa, ur, d_top_bank, pop_density, log_earnings, emp_rate)]
+
+
+setcolorder(main, c("fips", "year", "total_amount_loan", "lead_ln_loan_amount", "hhi", "mean_hhi", "d_median_all_pre",
+            "log_earnings", "ur", "d_msa", "d_top_bank", "pop_density", "cnty_pop", "emp_rate"))
+
+## 6.1 Time-Independent Descriptive Statistics ---------------------------------
+
+stats <- main |> 
+  select(-c(fips, year)) |> 
+  summarise_all(list(mean = ~mean(.x, na.rm = TRUE),
+                     sd = ~sd(.x, na.rm = TRUE),
+                     min = ~min(.x, na.rm = TRUE),
+                     max = ~max(.x, na.rm = TRUE)))
+
+stats <- stats |>  
+  pivot_longer(
+               cols = everything(),
+               names_to = c("Variable", ".value"),
+               names_pattern = "(.*)_(mean|sd|min|max)"
+               )  
+
+latex_table <- stats |> 
+  gt() |> 
+  gt::tab_header(
+    title = "Descriptive Statistics",
+    subtitle = "Summary of Variables"
+  ) |> 
+  gt::fmt_number(
+    columns = c(mean, sd, min, max),
+    decimals = 2
+  ) |> 
+  gt::cols_label(
+    mean = "Mean",
+    sd = "SD",
+    min = "Min",
+    max = "Max"
+  ) 
+
+pooled_main <- main |> 
+  select(-c("fips", "year"))
+  
+stargazer(pooled_main,
+          title="Descriptive Statistics", 
+          type = "text",
+          covariate.labels = c("Total Loan Amount", "Lead Log Loan Amount", "HHI",
+                               "Mean HHI", "Dummy: Market Concentration", "Log Earnings",
+                               "Unemployment Rate", "Dummy: MSA", "Dummy: Top 5 Banks",
+                               "Population Density", "County Population", "Employment Rate"),
+          summary = TRUE,
+          summary.stat = c("median","mean", "sd", "min", "max"),
+          digits=1)
+
+
 ############################### ENDE ##########################################+
