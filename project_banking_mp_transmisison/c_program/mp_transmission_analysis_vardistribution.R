@@ -191,7 +191,11 @@ setcolorder(main, c("fips", "year", "total_amount_loan", "lead_ln_loan_amount", 
 
 pooled_main <- main |> 
   select(-c("fips", "year"))
-  
+
+# Condition to print out figures and tables
+output_descriptive_stats <- if (PRODUCE_FIGS) paste0(LATEX, "regression_descriptive_stats.tex") else NULL
+
+# Table for Descriptive Statistics
 stargazer(pooled_main,
           title="Descriptive Statistics", 
           type = "text",
@@ -201,7 +205,76 @@ stargazer(pooled_main,
                                "Population Density", "County Population", "Employment Rate"),
           summary = TRUE,
           summary.stat = c("median","mean", "sd", "min", "max"),
-          digits=1)
+          digits=2,
+          out = output_descriptive_stats)
 
+## 6.2 Correlation of Relevant Variables ---------------------------------------
+
+cor_main <- main[, .(lead_ln_loan_amount, d_median_all_pre, log_earnings, ur, d_msa, d_top_bank,
+                     pop_density, cnty_pop, emp_rate)]
+
+cor_matrix <- cor(cor_main)
+
+custom_names <- c("Lead Log Loan Amount", "Dummy: Market Concentration", "Log Earnings",
+                  "Unemployment Rate", "Dummy: MSA", "Dummy: Top 5 Banks",
+                  "Population Density", "County Population", "Employment Rate")
+
+rownames(cor_matrix) <- custom_names
+colnames(cor_matrix) <- custom_names
+
+corrplot(cor_matrix, method = "number", type = "lower", tl.col = "black", tl.srt = 45)
+
+## 6.3 Map of the U.S. for displaying HHI --------------------------------------
+
+counties <- counties(cb = TRUE, year = 2022)
+
+hhi <- main |> 
+  filter(year == 2007) |> 
+  select(c("fips", "mean_hhi")) |> 
+  rename(GEOID = fips)
+
+map_data <- counties |> 
+  left_join(hhi, by = c("GEOID"))
+
+ggplot(data = map_data) +
+  geom_sf(aes(fill = mean_hhi), color = NA) + 
+  scale_fill_viridis_c(
+    option = "plasma",
+    name = "HHI",
+    direction = 1
+  ) +
+  theme_minimal() +
+  labs(
+    title = "HHI by County",
+    subtitle = "Higher HHI values are shown in red",
+    caption = "Source: Your Data"
+  ) +
+  theme(
+    legend.position = "bottom",
+    plot.title = element_text(size = 16, face = "bold")
+  )
+
+install.packages("tmap")
+library(tmap)
+
+tm_shape(map_data) +
+  tm_polygons(
+    col = "mean_hhi",                   # Column for coloring
+    palette = "Reds",              # Color palette (red for higher HHI)
+    title = "HHI",                 # Legend title
+    style = "quantile",            # Use quantiles for color bins
+    border.alpha = 0               # Remove borders between counties
+  ) +
+  tm_layout(
+    title = "HHI by County (Close-Up)",
+    frame = FALSE,                 # Remove the frame
+    legend.position = c("left", "bottom") # Position the legend
+  )  +
+  tm_view(
+    bbox = st_bbox(map_data),      # Zoom to the bounding box of all counties
+    view.legend.position = c("left", "bottom")
+  )
+
+county_map <- maps::map("county", fill = TRUE, plot = FALSE)
 
 ############################### ENDE ##########################################+
