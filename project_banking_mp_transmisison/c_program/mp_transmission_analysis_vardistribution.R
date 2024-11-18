@@ -228,53 +228,40 @@ corrplot(cor_matrix, method = "number", type = "lower", tl.col = "black", tl.srt
 
 counties <- counties(cb = TRUE, year = 2022)
 
-hhi <- main |> 
+hhi_data <- main |> 
   filter(year == 2007) |> 
   select(c("fips", "mean_hhi")) |> 
   rename(GEOID = fips)
 
-map_data <- counties |> 
-  left_join(hhi, by = c("GEOID"))
+counties <- counties |> 
+  mutate(fips = as.character(GEOID)) |> 
+  left_join(hhi_data, by = "GEOID") |> 
+  rename(hhi = mean_hhi)
 
-ggplot(data = map_data) +
-  geom_sf(aes(fill = mean_hhi), color = NA) + 
-  scale_fill_viridis_c(
-    option = "plasma",
-    name = "HHI",
-    direction = 1
+# Plot the map using ggplot2
+us_map <- ggplot(data = counties) +
+  geom_sf(aes(fill = hhi), color = NA) +  # Color counties by HHI
+  scale_fill_gradient(
+    low = "yellow", high = "red",
+    name = "HHI"
   ) +
+  coord_sf(xlim = c(-130, -65), ylim = c(22, 50)) +  # Zoom in to show only the US
   theme_minimal() +
   labs(
     title = "HHI by County",
-    subtitle = "Higher HHI values are shown in red",
-    caption = "Source: Your Data"
+    subtitle = "Based on the Mean HHI for the year 2004 to 2007",
+    caption = "Source: Summary of Deposits"
   ) +
   theme(
     legend.position = "bottom",
     plot.title = element_text(size = 16, face = "bold")
   )
 
-install.packages("tmap")
-library(tmap)
+if (PRODUCE_FIGS) {
+  ggsave(filename = paste0(FIGURE, "graph_us_map.pdf"), plot = us_map, device = "pdf", width = 10, height = 6)
+}
 
-tm_shape(map_data) +
-  tm_polygons(
-    col = "mean_hhi",                   # Column for coloring
-    palette = "Reds",              # Color palette (red for higher HHI)
-    title = "HHI",                 # Legend title
-    style = "quantile",            # Use quantiles for color bins
-    border.alpha = 0               # Remove borders between counties
-  ) +
-  tm_layout(
-    title = "HHI by County (Close-Up)",
-    frame = FALSE,                 # Remove the frame
-    legend.position = c("left", "bottom") # Position the legend
-  )  +
-  tm_view(
-    bbox = st_bbox(map_data),      # Zoom to the bounding box of all counties
-    view.legend.position = c("left", "bottom")
-  )
 
-county_map <- maps::map("county", fill = TRUE, plot = FALSE)
+
 
 ############################### ENDE ##########################################+
