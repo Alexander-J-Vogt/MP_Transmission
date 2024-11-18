@@ -188,36 +188,6 @@ setcolorder(main, c("fips", "year", "total_amount_loan", "lead_ln_loan_amount", 
 
 ## 6.1 Time-Independent Descriptive Statistics ---------------------------------
 
-stats <- main |> 
-  select(-c(fips, year)) |> 
-  summarise_all(list(mean = ~mean(.x, na.rm = TRUE),
-                     sd = ~sd(.x, na.rm = TRUE),
-                     min = ~min(.x, na.rm = TRUE),
-                     max = ~max(.x, na.rm = TRUE)))
-
-stats <- stats |>  
-  pivot_longer(
-               cols = everything(),
-               names_to = c("Variable", ".value"),
-               names_pattern = "(.*)_(mean|sd|min|max)"
-               )  
-
-latex_table <- stats |> 
-  gt() |> 
-  gt::tab_header(
-    title = "Descriptive Statistics",
-    subtitle = "Summary of Variables"
-  ) |> 
-  gt::fmt_number(
-    columns = c(mean, sd, min, max),
-    decimals = 2
-  ) |> 
-  gt::cols_label(
-    mean = "Mean",
-    sd = "SD",
-    min = "Min",
-    max = "Max"
-  ) 
 
 pooled_main <- main |> 
   select(-c("fips", "year"))
