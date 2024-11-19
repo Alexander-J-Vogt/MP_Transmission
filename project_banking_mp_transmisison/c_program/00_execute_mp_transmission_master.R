@@ -64,15 +64,13 @@ source(paste0(DO,input,sep=""), echo=TRUE, max=1000)
 # MAIN PART ####
 
 # Code to read-in hmda files takes a lot of time
-RUNLONGCODE <- TRUE
+RUNLONGCODE <- FALSE
 
 # Set the following variable true if figures and table should be produced
 PRODUCE_FIGS <- TRUE
   
 #############################################+
 # read-in + basic editing of raw data: create base df ####
-# input <- 'mp_transmission_databasics.R'
-# source(paste0(DO,input,sep=""), echo=TRUE, max=1000)
 
 input <- 'mp_transmission_databasics_fips.R'
 source(paste0(DO,input,sep=""), echo=TRUE, max=1000)
