@@ -24,7 +24,7 @@ gc()
 # 1. Plot FFR Over Time [SAVED] ================================================
 
 # Load data on federal fund rate
-ffr_monthly <- LOAD(dfinput = "ffr")
+ffr_monthly <- LOAD(dfinput = "mp_transmission_databasics_ffr")
 ffr_annual <- LOAD(dfinput = "ffr_annual")
 setDT(ffr_annual)
 setDT(ffr_monthly)
@@ -80,10 +80,10 @@ if (PRODUCE_FIGS) {
 ggsave(filename = paste0(FIGURE, "graph_ffr.pdf"), plot = graph_ffr, device = "pdf", width = 10, height = 6)
 }
 
+
 # 2. GDP Time Line [NOT SAVED] =================================================
 
 # Load data on GDP of U.S.
-# gdp_data <- LOAD(dfinput = "gdp_data")
 gdp_data <- LOAD(dfinput = "mp_transmission_databasics_gdp")
 setDT(gdp_data)
 
@@ -125,7 +125,7 @@ ggplot() +
 # 3. Plot Market Concentration over time [NOT SAVED] ===========================
 
 # Load data 
-main <- LOAD(dfinput = "main_allfin_data")
+main <- LOAD(dfinput = "mp_transmission_main")
 setDT(main)
 
 # Restrict dataset and format variables
