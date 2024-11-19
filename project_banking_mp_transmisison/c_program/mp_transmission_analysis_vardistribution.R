@@ -188,12 +188,12 @@ setcolorder(main, c("fips", "year", "total_amount_loan", "lead_ln_loan_amount", 
 
 ## 6.1 Time-Independent Descriptive Statistics ---------------------------------
 
-
+# Exclude fips and year
 pooled_main <- main |> 
   select(-c("fips", "year"))
 
 # Condition to print out figures and tables
-output_descriptive_stats <- if (PRODUCE_FIGS) paste0(LATEX, "regression_descriptive_stats.tex") else NULL
+output_descriptive_stats <- if (PRODUCE_FIGS) paste0(LATEX, "table_descriptive_stats.tex") else NULL
 
 # Table for Descriptive Statistics
 stargazer(pooled_main,
@@ -210,19 +210,25 @@ stargazer(pooled_main,
 
 ## 6.2 Correlation of Relevant Variables ---------------------------------------
 
+# Select varuables
 cor_main <- main[, .(lead_ln_loan_amount, d_median_all_pre, log_earnings, ur, d_msa, d_top_bank,
                      pop_density, cnty_pop, emp_rate)]
 
+# Correlation
 cor_matrix <- cor(cor_main)
 
+# Get custom variables
 custom_names <- c("Lead Log Loan Amount", "Dummy: Market Concentration", "Log Earnings",
                   "Unemployment Rate", "Dummy: MSA", "Dummy: Top 5 Banks",
                   "Population Density", "County Population", "Employment Rate")
-
 rownames(cor_matrix) <- custom_names
 colnames(cor_matrix) <- custom_names
 
+# Correlation Map
+pdf(paste0(FIGURE, "correlation_matrix.pdf"), width = 10, height = 6)
 corrplot(cor_matrix, method = "number", type = "lower", tl.col = "black", tl.srt = 45)
+dev.off()
+
 
 ## 6.3 Map of the U.S. for displaying HHI --------------------------------------
 
