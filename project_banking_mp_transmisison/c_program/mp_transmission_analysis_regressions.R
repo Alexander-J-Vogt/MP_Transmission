@@ -20,13 +20,13 @@ MAINNAME <- substr(MAINNAME,1,nchar(MAINNAME)-2) #cut off .R
 gc()
 
 ################################################################################################################+
-# MAIN PART ####
 
 # 0. Documentation =============================================================
 
 #' What regression specifications have been tested?
 #' 
 #' i. The following additional control variables have been tested in different specifications:
+#' 
 #'    - employment 
 #'    - log employment
 #'    - change in employment
@@ -47,6 +47,7 @@ gc()
 #'    - d_market_definition: 1 when HHI of county is greater than HHI of 2500
 #'    
 #' iii. Additionally:
+#' 
 #'    - Specification with demeaned variables by year in order to control for 
 #'      unobserved time-variant characteristics
 #'
@@ -64,13 +65,10 @@ gc()
 #'  - Control Set 2: Unemployment Rate + log Earnings + Dummy MSA
 
 
-# 1. Load Data =================================================================
+# 01. Load Data =================================================================
 
-# SET TRUE FOR PRODUCING GRAPHS
-PRODUCE_FIGS <- TRUE
 
 # Load Data
-# df_base <- LOAD(dfinput = "main_banks_data")
 df_base <- LOAD(dfinput = "mp_transmission_main")
 setDT(df_base)
 
@@ -90,7 +88,7 @@ formula_ur_bank_msa <- as.formula(paste0(base_formel, " + ur + log_earnings + d_
 # list of formula names
 formula_list <- list(formula_base, formula_ur, formula_ur_msa, formula_ur_bank, formula_ur_bank_msa)
 
-# nameing the list accoriding to the formula
+# naming the list according to the formula
 names(formula_list) <- c("formula_base", "formula_ur", "formula_ur_msa",
                          "formula_ur_bank", "formula_ur_bank_msa")
 
@@ -326,9 +324,94 @@ stargazer(did19, did20, did21, did22, did23, did24,
           omit.stat = c("LL", "ser", "f", "rsq"),
           no.space = FALSE,
           notes.append = TRUE,
-          # notes = "Column (1) and (4): Baseline | Column (2) and (5): Control Set 1 + Top 5 Banks | Column (3) and (6): Control Set 2 + Top 5 Banks",
           out = output_robust_results
           )
 
+# 06. Placebo in Post-Treatment Period  [INCLUDED IN PRESENTATION] =========================================
+PRODUCE_FIGS <- TRUE
+# Restrict Period according to anticipation period & three periods after treatment
+df_antcp0 <- df_base[inrange(year, 2013, 2016)]
+df_antcp1 <- df_base[inrange(year, 2012, 2016)]
+
+# Placebo Formula
+placebo_formel <- c("lead_ln_loan_amount ~ d_median_all_pre + d_placebo_2014 + d_median_all_pre:d_placebo_2014")
+
+# Regression without anticipation
+did7 <- felm(as.formula(paste0(placebo_formel, " | state | 0 | state")), data = df_antcp0, weights = 1/df_antcp0$cnty_pop)
+did8 <- felm(as.formula(paste0(placebo_formel, " + ur + log_earnings + d_top_bank | state | 0 | state")), data = df_antcp0, weights = 1/df_antcp0$cnty_pop)
+did9 <- felm(as.formula(paste0(placebo_formel, " + ur + log_earnings + d_top_bank + d_msa| state | 0 | state")), data = df_antcp0, weights = 1/df_antcp0$cnty_pop)
+
+# Regression with one year of anticipation
+did10 <- felm(as.formula(paste0(placebo_formel, " | state | 0 | state")), data = df_antcp1, weights = 1/df_antcp1$cnty_pop)
+did11 <- felm(as.formula(paste0(placebo_formel, " + ur + log_earnings + d_top_bank | state | 0 | state")), data = df_antcp1, weights = 1/df_antcp1$cnty_pop)
+did12 <- felm(as.formula(paste0(placebo_formel, " + ur + log_earnings + d_top_bank + d_msa| state | 0 | state")), data = df_antcp1, weights = 1/df_antcp1$cnty_pop)
+
+# Condition to print out figures and tables
+output_placebo_post_bank <- if (PRODUCE_FIGS) paste0(LATEX, "regression_placebo_post_bank.tex") else NULL
+
+# Stargazer table
+stargazer(did7, did8, did9, did10, did11, did12,
+          type = "text",
+          digits = 3,
+          dep.var.caption  = "Dependent Variable: Log One-Year Ahead Mortgage Loan Amount",
+          column.labels = c("Anticipation: 0 Years", "Anticipation: 1 Year"),  
+          column.separate = c(3, 3), 
+          dep.var.labels.include = FALSE,
+          model.names = FALSE,
+          covariate.labels = c("Dummy: Market Concentration", "Dummy: Great Recession",
+                               "Unemployment Rate", "Log Earnings", "Dummy: Top 5 Bank" ,"Dummy: MSA", "DiD Estimator"),
+          add.lines = list(
+            c("State FE:", "True", "True", "True", "True", "True", "True"),
+            c("Clustered SE on State-Level:", "True", "True", "True", "True", "True", "True")
+          ),
+          omit.stat = c("LL", "ser", "f", "rsq"),
+          no.space = FALSE,
+          notes.append = TRUE,
+          out = output_placebo_post_bank
+)
+
+
+# 07. Placebo in Pre-Treatment Period [INCLUDED IN PRESENTATION] ==========================================
+
+# Restrict Period according to anticipation period & three periods after treatment
+df_antcp0 <- df_base[inrange(year, 2003, 2006)]
+df_antcp1 <- df_base[inrange(year, 2002, 2006)]
+
+# Placebo Formula
+placebo_formel <- c("lead_ln_loan_amount ~ d_median_all_pre + d_placebo_2004 + d_median_all_pre:d_placebo_2004")
+
+# Regression without anticipation
+did13 <- felm(as.formula(paste0(placebo_formel, " | state | 0 | state")), data = df_antcp0, weights = 1/df_antcp0$cnty_pop)
+did14 <- felm(as.formula(paste0(placebo_formel, " + ur + log_earnings + d_top_bank | state | 0 | state")), data = df_antcp0, weights = 1/df_antcp0$cnty_pop)
+did15 <- felm(as.formula(paste0(placebo_formel, " + ur + log_earnings + d_top_bank + d_msa| state | 0 | state")), data = df_antcp0, weights = 1/df_antcp0$cnty_pop)
+
+# Regression with one year of anticipation
+did16 <- felm(as.formula(paste0(placebo_formel, " | state | 0 | state")), data = df_antcp1, weights = 1/df_antcp1$cnty_pop)
+did17 <- felm(as.formula(paste0(placebo_formel, " + ur + log_earnings + d_top_bank | state | 0 | state")), data = df_antcp1, weights = 1/df_antcp1$cnty_pop)
+did18 <- felm(as.formula(paste0(placebo_formel, " + ur + log_earnings + d_top_bank + d_msa| state | 0 | state")), data = df_antcp1, weights = 1/df_antcp1$cnty_pop)
+
+# Condition to print out figures and tables
+output_placebo_pre_bank <- if (PRODUCE_FIGS) paste0(LATEX, "regression_placebo_pre_bank.tex") else NULL
+
+# Stargazer table
+stargazer(did13, did14, did15, did16, did17, did18,
+          type = "text",
+          digits = 3,
+          dep.var.caption  = "Dependent Variable: Log One-Year Ahead Mortgage Loan Amount",
+          column.labels = c("Anticipation: 0 Years", "Anticipation: 1 Year"),
+          column.separate = c(3, 3), 
+          dep.var.labels.include = FALSE,
+          model.names = FALSE,
+          covariate.labels = c("Dummy: Market Concentration", "Dummy: Great Recession",
+                               "Unemployment Rate", "Log Earnings", "Dummy: Top 5 Bank" ,"Dummy: MSA", "DiD Estimator"),
+          add.lines = list(
+            c("State FE:", "True", "True", "True", "True", "True", "True"),
+            c("Clustered SE on State-Level:", "True", "True", "True", "True", "True", "True")
+          ),
+          omit.stat = c("LL", "ser", "f", "rsq"),
+          no.space = FALSE,
+          notes.append = TRUE,
+          out = output_placebo_pre_bank
+)
 
 ############################## END ############################################+
