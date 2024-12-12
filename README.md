@@ -1,1 +1,3 @@
 # Market Concentration & Monetary Policy Transmission to Mortgage Loans at the Zero Lower Bound
+
+This research project examines the effect of market concentration on the transmission of monetary policy to mortgage loans at the zero lower bound (ZLB). It focuses on U.S. bank-level data from the Summary of Deposits and HMDA datasets to analyze how concentration in the banking sector impacts the effectiveness of monetary policy. The analysis includes extensive data cleaning, integration, and econometric techniques to explore the relationship between market structure and policy outcomes. The findings aim to provide insights into how financial market dynamics influence the effectiveness of macroeconomic policy during periods of constrained monetary policy.
